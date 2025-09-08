@@ -1,0 +1,95 @@
+# ======================================================================================
+# Project metadata
+# ======================================================================================
+[project]
+
+name = "galpos"
+description = "A package for modeling galaxy poses and trajectories."
+authors = [
+    {name = "Shuai LU", email = "lushuai@stu.xmu.edu.cn"}
+]
+license = "MIT"
+license-files = ["LICENSE"]
+
+requires-python = ">=3.8"
+dependencies = [
+    "numpy",
+    "scipy",
+]
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+
+dynamic = ["version"]
+
+[project.readme]
+
+file = "README.md"
+content-type = "text/markdown"
+
+[project.urls]
+Repository = "https://github.com/GalaxySimAnalytics/GalaxyPose"
+Github = "https://github.com/GalaxySimAnalytics/GalaxyPose"
+
+# ======================================================================================
+# Build system configuration
+# ======================================================================================
+[build-system]
+
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tools.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.dynamic]
+version = {attr = "galpos.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# ======================================================================================
+# Optional dependencies
+# ======================================================================================
+
+[project.optional-dependencies]
+tests = [
+    "pytest",
+    "pytest-cov"
+]
+
+dev = [
+    "pre-commit",
+    "mypy>=1.17",
+    "ruff>=0.11"
+]
+
+
+# ======================================================================================
+# Ruff configuration
+# ======================================================================================
+[tool.ruff]
+line-length = 88
+target-version = "py38"
+
+[tool.ruff.lint]
+select = ["E", "F", "B"]
+ignore = []
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+# ======================================================================================
+# mypy configuration
+# ======================================================================================
+[tool.mypy]
+python_version = "3.9"
+
+ignore_missing_imports = true
+
+disallow_incomplete_defs = true
+check_untyped_defs = true

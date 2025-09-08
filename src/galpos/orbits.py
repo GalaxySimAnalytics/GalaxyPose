@@ -50,7 +50,8 @@ def unwrap_positions(pos: ArrayLike, L: float) -> np.ndarray:
 
 class PolynomialInterpolator(PPoly):
     """
-    Polynomial interpolation with position, velocity, and optional acceleration constraints.
+    Polynomial interpolation with position, velocity, and optional acceleration 
+    constraints.
     
     Implements a piecewise polynomial interpolator that matches:
     - For cubic polynomial: position and velocity at endpoints
@@ -185,12 +186,9 @@ class PolynomialInterpolator(PPoly):
                             f"x:{len(x)}, y:{len(y)}, dydx:{len(dydx)}")
         
         c = np.zeros((k, len(x) - 1), dtype=float)
-        is_quintic = d2ydx2 is not None
         
-        
-        is_quintic = d2ydx2 is not None
     
-        if is_quintic and d2ydx2.shape[0] != n:
+        if d2ydx2 is not None and d2ydx2.shape[0] != n:
             raise ValueError(f"d2ydx2 length {len(d2ydx2)} does not match x length {n}")
         
         for i in range(len(x) - 1):
@@ -201,7 +199,7 @@ class PolynomialInterpolator(PPoly):
             # Use local coordinates to build equation system
             dx = x2 - x1
             
-            if is_quintic:
+            if d2ydx2 is not None:
                 d2y1, d2y2 = d2ydx2[i], d2ydx2[i + 1]
                 
                 A = np.array([
@@ -276,7 +274,12 @@ class PolynomialInterpolator(PPoly):
             Piecewise polynomial representing the derivative
         """
         ppoly_deriv = super().derivative(nu)
-        return self.construct_fast(ppoly_deriv.c, ppoly_deriv.x, ppoly_deriv.extrapolate, self.axis)
+        return self.construct_fast(
+            ppoly_deriv.c, 
+            ppoly_deriv.x, 
+            ppoly_deriv.extrapolate, 
+            self.axis
+        )
 
 
 class Trajectory:
@@ -344,7 +347,11 @@ class Trajectory:
         self.velocities: np.ndarray
         self.accelerations: np.ndarray
         self.unwrapped_positions: Optional[np.ndarray] = None
-        self.spline: Union[PolynomialInterpolator, CubicHermiteSpline, PchipInterpolator]
+        self.spline: Union[
+            PolynomialInterpolator, 
+            CubicHermiteSpline, 
+            PchipInterpolator
+        ]
         
         
         # Handle periodic boundary conditions
@@ -358,7 +365,8 @@ class Trajectory:
         # When accelerations are provided, use quintic polynomial interpolation
         if accelerations is not None:
             if method != 'polynomial':
-                print(f"Warning: accelerations provided, switching to 'polynomial' method")
+                print("Warning: accelerations provided, "
+                      "switching to 'polynomial' method")
                 method = 'polynomial'
 
             self.accelerations = np.asarray(accelerations)
@@ -381,7 +389,8 @@ class Trajectory:
         elif velocities is None:
             # Use PchipInterpolator which doesn't require explicit derivatives
             if method != 'pchip':
-                print(f"Warning: velocities and accelerations not provided, switching to 'pchip' method instead of '{method}'")
+                print("Warning: velocities and accelerations not provided, "
+                      f"switching to 'pchip' method instead of '{method}'")
                 method = 'pchip'
 
             self.spline = PchipInterpolator(times, pos)
@@ -403,7 +412,11 @@ class Trajectory:
                 self.velocities = self.spline.derivative()(times)
             self.accelerations = self.spline.derivative(2)(times)
 
-    def __call__(self, t: Union[float, ArrayLike], wrap: bool = False, extrapolate: bool = False) -> Tuple[np.ndarray, np.ndarray]:
+    def __call__(self, 
+                 t: Union[float, ArrayLike], 
+                 wrap: bool = False, 
+                 extrapolate: bool = False
+                 ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Evaluate trajectory at specified time(s).
         
@@ -441,7 +454,10 @@ class Trajectory:
             return pos[0], vel[0]
         return pos, vel
 
-    def get_acceleration(self, t: Union[float, ArrayLike], extrapolate: bool = False) -> np.ndarray:
+    def get_acceleration(self, 
+                         t: Union[float, ArrayLike], 
+                         extrapolate: bool = False
+                         ) -> np.ndarray:
         """
         Evaluate acceleration at specified time(s).
         
@@ -494,4 +510,6 @@ class Trajectory:
         Trajectory
             A new Trajectory object
         """
-        return cls(t, pos, vel, box_size, method)
+        return cls(
+            times=t, positions=pos, velocities=vel, 
+            box_size=box_size, method=method)

@@ -3,9 +3,11 @@ from typing import Optional, Union, Tuple
 import numpy as np
 from numpy.typing import ArrayLike
 
-
 from .orbits import Trajectory
 from .poses import Orientation
+
+__version__ = "0.1.0"
+
 
 class GalaxyPoseTrajectory:
     """
@@ -39,16 +41,23 @@ class GalaxyPoseTrajectory:
         angular_momentum : array_like, optional
             Angular momentum vectors (N, 3) representing disk orientation.
         box_size : float, optional
-            Size of the periodic box. If specified, positions will be wrapped to the box (0 ~ box_size)
+            Size of the periodic box. 
+            If specified, positions will be wrapped to the box (0 ~ box_size)
         """
-        self.trajectory: Trajectory = Trajectory(times, positions, velocities, accelerations=accelerations, box_size=box_size, method=trajectory_method)
+        self.trajectory: Trajectory = Trajectory(
+            times, positions, velocities, 
+            accelerations, box_size, trajectory_method)
 
         self.orientation: Optional[Orientation] = None
 
         if rotations is not None or angular_momentum is not None:
             self.orientation = Orientation(times, rotations, angular_momentum)
 
-    def __call__(self, t: Union[float, ArrayLike], wrap: bool = False, extrapolate: bool = False) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
+    def __call__(self, 
+                 t: Union[float, ArrayLike], 
+                 wrap: bool = False, 
+                 extrapolate: bool = False
+                 ) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
         """
         Evaluate galaxy state at time t.
         
@@ -74,7 +83,10 @@ class GalaxyPoseTrajectory:
         else:
             return pos, vel, None
 
-    def get_acceleration(self, t: Union[float, ArrayLike], extrapolate: bool = False) -> np.ndarray:
+    def get_acceleration(self, 
+                         t: Union[float, ArrayLike], 
+                         extrapolate: bool = False
+                         ) -> np.ndarray:
         """
         Get the acceleration of the galaxy at time t.
 

@@ -109,10 +109,10 @@ def quaternion_exponential(q: np.ndarray) -> np.ndarray:
 
 
 # =================== Rotation Utility Functions ===================
-
+DEFAULT_UP_VECTOR = np.array([0.0, 1.0, 0.0])
 def calculate_face_on_matrix(
     direction_vector: np.ndarray, 
-    up_vector: np.ndarray = np.array([0.0, 1.0, 0.0])
+    up_vector: np.ndarray = DEFAULT_UP_VECTOR
 ) -> np.ndarray:
     """
     Calculate rotation matrix to align a direction vector with the z-axis.
@@ -252,8 +252,10 @@ class Orientation:
         
         # Create array of normalized direction vectors
         self.angmom_directions = np.zeros_like(angmom)
-        self.angmom_directions[valid_mask] = angmom[valid_mask] / norms[valid_mask, np.newaxis]
-        
+        self.angmom_directions[valid_mask] = (
+            angmom[valid_mask] / norms[valid_mask, np.newaxis]
+            )
+
         # Set default direction [0,0,1] for invalid vectors
         invalid_mask = ~valid_mask
         if np.any(invalid_mask):
@@ -296,9 +298,12 @@ class Orientation:
             out_of_bounds = (t_array < self.times[0]) | (t_array > self.times[-1])
             if np.any(out_of_bounds):
                 results[out_of_bounds] = np.full((3, 3), np.nan)
-                
-                
-        valid_indices = np.logical_not(out_of_bounds) if not extrapolate else np.ones_like(t_array, dtype=bool)
+
+
+        valid_indices = (np.logical_not(out_of_bounds) 
+                         if not extrapolate 
+                         else np.ones_like(t_array, dtype=bool))
+        
         valid_times = t_array[valid_indices]
         
         if len(valid_times) == 0:
@@ -351,7 +356,8 @@ class Orientation:
         # Use linear interpolation for nearly parallel vectors
         linear_mask = dot > 0.9999
         if np.any(linear_mask):
-            res_lin = v0[linear_mask] + h[linear_mask, np.newaxis] * (v1[linear_mask] - v0[linear_mask])
+            res_lin = (v0[linear_mask] + 
+                       h[linear_mask, np.newaxis] * (v1[linear_mask] - v0[linear_mask]))
             norm = np.linalg.norm(res_lin, axis=1, keepdims=True)
             results[linear_mask] = res_lin / norm
         
@@ -392,8 +398,9 @@ class Orientation:
         if np.any(parallel_mask):
             # Choose a different up vector for these cases
             alt_up = np.array([1.0, 0.0, 0.0])  
-            x_axis[parallel_mask] = np.cross(np.tile(alt_up, (np.sum(parallel_mask), 1)), 
-                                            z_axis[parallel_mask])
+            x_axis[parallel_mask] = np.cross(
+                np.tile(alt_up, (np.sum(parallel_mask), 1)), 
+                z_axis[parallel_mask])
             x_norms[parallel_mask] = np.linalg.norm(x_axis[parallel_mask], axis=1)
         
         # Normalize x-axis
@@ -519,7 +526,7 @@ class Orientation:
         q2 = q2 / np.linalg.norm(q2)
         
         # Calculate angle between quaternions
-        dot = np.sum(q1 * q2)
+        dot: float = np.sum(q1 * q2)
         
         # Choose shortest path
         if dot < 0:
@@ -562,15 +569,19 @@ class Orientation:
             Control points for SQUAD interpolation
         """
         num_points = len(quaternions)
-        control_points = [None] * num_points
+        control_points = [np.zeros(4) for _ in range(num_points)]
         
         # Calculate interior control points
         for i in range(1, num_points - 1):
             a = quaternion_logarithm(
-                quaternion_multiply(quaternion_inverse(quaternions[i]), quaternions[i+1])
+                quaternion_multiply(
+                    quaternion_inverse(quaternions[i]), quaternions[i+1]
+                )
             )
             b = quaternion_logarithm(
-                quaternion_multiply(quaternion_inverse(quaternions[i]), quaternions[i-1])
+                quaternion_multiply(
+                    quaternion_inverse(quaternions[i]), quaternions[i-1]
+                )
             )
             control_points[i] = quaternion_multiply(
                 quaternions[i], 
@@ -581,7 +592,9 @@ class Orientation:
         if num_points > 2:
             # Start point
             a_0 = quaternion_logarithm(
-                quaternion_multiply(quaternion_inverse(quaternions[0]), quaternions[1])
+                quaternion_multiply(
+                    quaternion_inverse(quaternions[0]), quaternions[1]
+                    )
             )
             control_points[0] = quaternion_multiply(
                 quaternions[0],
@@ -590,7 +603,9 @@ class Orientation:
             
             # End point
             b_n = quaternion_logarithm(
-                quaternion_multiply(quaternion_inverse(quaternions[-1]), quaternions[-2])
+                quaternion_multiply(
+                    quaternion_inverse(quaternions[-1]), quaternions[-2]
+                    )
             )
             control_points[-1] = quaternion_multiply(
                 quaternions[-1],
