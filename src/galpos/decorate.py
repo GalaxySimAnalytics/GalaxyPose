@@ -8,7 +8,7 @@ of stellar positions and velocities with their host galaxies.
 """
 
 import numpy as np
-from typing import Optional, Union, Any
+from typing import Union
 
 from . import GalaxyPoseTrajectory
 
@@ -21,7 +21,7 @@ from pynbody.units import Unit
 __all__ = ["make_star_birth", "StarBirth"]
 
 
-def units_transform(sim: SubSnap, array_name: str, new_units: str | Unit) -> None:
+def units_transform(sim: SubSnap, array_name: str, new_units: Union[str, Unit]) -> None:
     """
     Transform an array in a simulation to new units.
     
@@ -93,8 +93,10 @@ class StarBirth(SubSnap):
         Align star positions and velocities with their host galaxy.
         
         This method performs two operations:
-        1. Center positions and velocities relative to the galaxy's position and velocity
-        2. (Optional) Orient positions and velocities according to the galaxy's orientation
+        1. Center positions and velocities relative to the galaxy's position 
+        and velocity
+        2. (Optional) Orient positions and velocities according to the 
+        galaxy's orientation
         
         Parameters
         ----------
@@ -109,7 +111,8 @@ class StarBirth(SubSnap):
 
         if (self.__already_centered and 
             (self.__already_oriented or not orientation_align)):
-            print("Already centered and oriented" if self.__already_oriented else "Already centered")
+            print("Already centered and oriented" 
+                  if self.__already_oriented else "Already centered")
             return
 
         if not self.__already_centered:
@@ -133,12 +136,18 @@ class StarBirth(SubSnap):
 
 
         if (orientation_align and 
-            self.__already_centered and 
             not self.__already_oriented):
-            trans = self.galaxy_orbit.orientation(self.s['tform'].in_units('Gyr'))
-            self.s['pos'][:] = np.einsum("ij,ikj->ik", self.s['pos'].view(np.ndarray), trans)
-            self.s['vel'][:] = np.einsum("ij,ikj->ik", self.s['vel'].view(np.ndarray), trans)
-            self.__already_oriented = True
+            if self.galaxy_orbit.orientation is not None:
+                trans = self.galaxy_orbit.orientation(self.s['tform'].in_units('Gyr'))
+                
+                self.s['pos'][:] = np.einsum("ij,ikj->ik", 
+                                             self.s['pos'].view(np.ndarray), trans)
+                
+                self.s['vel'][:] = np.einsum("ij,ikj->ik", 
+                                             self.s['vel'].view(np.ndarray), trans)
+                self.__already_oriented = True
+            else:
+                print("Galaxy orientation not available")
 
 
 
