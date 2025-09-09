@@ -1,0 +1,14 @@
+# Byte-compiled 
+**/__pycache__
+
+*.egg-info/
+
+# PyInstaller or Distribution
+dist/
+build/
+
+# mypy
+.mypy_cache
+
+# ruff
+.ruff_cache

@@ -152,8 +152,8 @@ class StarBirth(SubSnap):
 
 
 def make_star_birth(galaxy_orbit: GalaxyPoseTrajectory, 
-               birth_pos: np.ndarray, 
                birth_time: np.ndarray, 
+               birth_pos: np.ndarray, 
                birth_velocity: np.ndarray, 
                mass: np.ndarray, 
                scale_factor: np.ndarray,

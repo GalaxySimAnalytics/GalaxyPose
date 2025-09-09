@@ -26,7 +26,8 @@ class GalaxyPoseTrajectory:
                  angular_momentum: Optional[np.ndarray] = None,
                  accelerations: Optional[ArrayLike] = None, 
                  box_size: Optional[float] = None, 
-                 trajectory_method: str = 'spline'):
+                 trajectory_method: str = 'spline',
+                 orientation_times: Optional[ArrayLike] = None):
         """
         Parameters
         ----------
@@ -51,7 +52,11 @@ class GalaxyPoseTrajectory:
         self.orientation: Optional[Orientation] = None
 
         if rotations is not None or angular_momentum is not None:
-            self.orientation = Orientation(times, rotations, angular_momentum)
+            if orientation_times is None:
+                orientation_times = times
+            self.orientation = Orientation(
+                orientation_times, rotations, angular_momentum
+                )
 
     def __call__(self, 
                  t: Union[float, ArrayLike], 
