@@ -110,3 +110,19 @@ class GalaxyPoseTrajectory:
             Acceleration vector (N,3) or (N,). NaN if outside input range
         """
         return self.trajectory.get_acceleration(t, extrapolate)
+    
+    def __repr__(self) -> str:
+        """Return a string representation of the GalaxyPoseTrajectory object."""
+        try:
+            n = len(self.trajectory.times)
+            t = self.trajectory.times
+            dim = self.trajectory.ndim
+            if self.trajectory.box_size is not None:
+                box = f", b={self.trajectory.box_size:.2g}"
+            else:
+                box = ""
+            o = "+" if self.orientation is not None else "-"
+            
+            return f"GPT({n}p, {dim}D, t=[{t[0]:.3g}-{t[-1]:.3g}]{box}, o:{o})"
+        except (IndexError, AttributeError):
+            return "GPT(empty)"

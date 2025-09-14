@@ -6,22 +6,24 @@ The module contains utilities for creating and manipulating star birth data
 in relation to galaxy pose trajectories, allowing for proper alignment
 of stellar positions and velocities with their host galaxies.
 """
+import warnings
+from typing import Union, Any, Optional
+from typing_extensions import Self
 
 import numpy as np
-from typing import Union
 
-from . import GalaxyPoseTrajectory
-
-from pynbody.snapshot import new, SubSnap
+from pynbody.snapshot import SimSnap
 from pynbody.array import SimArray
 from pynbody.units import Unit
+
+from . import GalaxyPoseTrajectory
 
 
 
 __all__ = ["make_star_birth", "StarBirth"]
 
 
-def units_transform(sim: SubSnap, array_name: str, new_units: Union[str, Unit]) -> None:
+def units_transform(sim: SimSnap, array_name: str, new_units: Union[str, Unit]) -> None:
     """
     Transform an array in a simulation to new units.
     
@@ -43,17 +45,21 @@ def units_transform(sim: SubSnap, array_name: str, new_units: Union[str, Unit]) 
     ratio = array.units.ratio(new_units, **(sim.conversion_context()))
     array.units = Unit(new_units)
     if np.isscalar(ratio):
+        # Simple scalar multiplication for all shapes
         array[:] = array.view(np.ndarray) * ratio
     else:
-        array[:] = np.einsum("ij,i->ij", array.view(np.ndarray), ratio)
+        # Use broadcasting for 1D, 2D and higher dimensional arrays
+        broadcast_shape = (len(ratio),) + (1,) * (array.ndim - 1)
+        reshaped_ratio = ratio.reshape(broadcast_shape)
+        array[:] = array.view(np.ndarray) * reshaped_ratio
 
 
 
-class StarBirth(SubSnap):
+class StarBirth(SimSnap):
     """
     Class representing stellar birth data aligned with galaxy trajectory.
-    
-    Inherits from pynbody.snapshot.SubSnap and provides methods to align
+
+    Inherits from pynbody.snapshot.SimSnap and provides methods to align
     stellar positions and velocities with their host galaxy's trajectory
     and orientation.
     
@@ -75,20 +81,58 @@ class StarBirth(SubSnap):
     def __init__(self, pos: SimArray, vel: SimArray, mass: SimArray, 
                  time: SimArray, scale_factor: np.ndarray, 
                  galaxy_orbit: GalaxyPoseTrajectory) -> None:
+        
+        # Initialize base SimSnap
+        SimSnap.__init__(self)
+                    
+        # Set the number of particles
+        self._num_particles = len(pos)
+        
+        # Set up the family slice for star particles
+        from pynbody import family
+        self._family_slice[family.star] = slice(0, len(pos))
+        
+        # Create the arrays
+        self._create_array('pos', ndim=3, dtype=pos.dtype)
+        self._create_array('vel', ndim=3, dtype=vel.dtype)
+        self._create_array('mass', ndim=1, dtype=mass.dtype)
+        self._create_array('tform', ndim=1, dtype=time.dtype)
+        
+        # Set the array values
+        self['pos'][:] = pos
+        self['pos'].units = pos.units
+        self['vel'][:] = vel
+        self['vel'].units = vel.units
+        self['mass'][:] = mass
+        self['mass'].units = mass.units
+        self['tform'][:] = time
+        self['tform'].units = time.units
 
-        star = new(star = len(pos))
-        star.s['pos'] = pos
-        star.s['vel'] = vel
-        star.s['mass'] = mass
-        star.s['tform'] = time
-        star.properties['a'] = scale_factor
+        # Store the scale factor
+        self.properties['a'] = scale_factor.view(np.ndarray)
 
-        SubSnap.__init__(self, star, slice(len(star)))
+        # Store the galaxy orbit information
         self.galaxy_orbit = galaxy_orbit
+
+        # Track alignment state
         self.__already_centered = False
         self.__already_oriented = False
+        
+        self._filename = self._get_filename_with_status()
+        self._decorate()
 
-    def align_with_galaxy(self, orientation_align: bool = True) -> None:
+    def _get_filename_with_status(self) -> str:
+        """Generate filename with alignment status information."""
+        status = []
+        if self.__already_centered:
+            status.append("centered")
+        if self.__already_oriented:
+            status.append("oriented")
+        
+        status_str = f" [{','.join(status)}]" if status else ""
+        return f"{repr(self.galaxy_orbit)}{status_str}"
+
+    def align_with_galaxy(self, orientation_align: bool = True) -> Self:
         """
         Align star positions and velocities with their host galaxy.
         
@@ -113,7 +157,7 @@ class StarBirth(SubSnap):
             (self.__already_oriented or not orientation_align)):
             print("Already centered and oriented" 
                   if self.__already_oriented else "Already centered")
-            return
+            return self
 
         if not self.__already_centered:
 
@@ -126,14 +170,11 @@ class StarBirth(SubSnap):
             units_transform(self.s, "vel", "a kpc Gyr**-1")
             self.s['vel'] = self.s['vel'] - vel
 
-
             units_transform(self.s, "pos", "kpc")
-            
             units_transform(self.s, "vel", "km s**-1")
 
-
             self.__already_centered = True
-
+            self._filename = self._get_filename_with_status()
 
         if (orientation_align and 
             not self.__already_oriented):
@@ -146,10 +187,18 @@ class StarBirth(SubSnap):
                 self.s['vel'][:] = np.einsum("ij,ikj->ik", 
                                              self.s['vel'].view(np.ndarray), trans)
                 self.__already_oriented = True
+                self._filename = self._get_filename_with_status()
             else:
                 print("Galaxy orientation not available")
-
-
+        return self
+    
+    def _register_transformation(self, t: Any) -> None:
+        warnings.warn(
+            ("StarBirth usually does not require any coordinate transformations, "
+            "the only available transformation method is align_with_galaxy"),
+            UserWarning, stacklevel=2
+            )
+        super()._register_transformation(t)
 
 def make_star_birth(galaxy_orbit: GalaxyPoseTrajectory, 
                birth_time: np.ndarray, 
@@ -160,7 +209,8 @@ def make_star_birth(galaxy_orbit: GalaxyPoseTrajectory,
                birth_pos_units: str = "kpc",
                birth_time_units: str = "Gyr",
                birth_velocity_units: str = "kpc Gyr**-1",
-               mass_units: str = "Msol") -> StarBirth:
+               mass_units: str = "Msol",
+               cosmology_params: Optional[dict] = None) -> StarBirth:
     """
     Create a StarBirth object from stellar birth data.
     
@@ -186,7 +236,9 @@ def make_star_birth(galaxy_orbit: GalaxyPoseTrajectory,
         Units for birth velocities
     mass_units : str, default="Msol"
         Units for masses
-        
+    cosmology_params : dict, optional
+        Cosmology parameters to include in the StarBirth object
+
     Returns
     -------
     StarBirth
@@ -206,7 +258,6 @@ def make_star_birth(galaxy_orbit: GalaxyPoseTrajectory,
         np_remove = len(sel) - len(birth_pos)
         print(f"Removed {np_remove} particles due to invalid scale factors.")
         
-    
     star = StarBirth(
         pos=SimArray(birth_pos, birth_pos_units),
         vel=SimArray(birth_velocity, birth_velocity_units),
@@ -215,5 +266,7 @@ def make_star_birth(galaxy_orbit: GalaxyPoseTrajectory,
         scale_factor=scale_factor,
         galaxy_orbit=galaxy_orbit
     )
+    if cosmology_params is not None:
+        star.properties.update(cosmology_params)
 
     return star

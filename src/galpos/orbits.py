@@ -344,6 +344,13 @@ class Trajectory:
         self.method: str = method
         
         self.positions: np.ndarray = positions
+        
+        # Determine dimensionality of the trajectory
+        if positions.ndim == 1:
+            self.ndim = 1
+        else:
+            self.ndim = positions.shape[1]
+        
         self.velocities: np.ndarray
         self.accelerations: np.ndarray
         self.unwrapped_positions: Optional[np.ndarray] = None
