@@ -19,3 +19,4 @@ pip install -e .
 # Use Cases
 
 In cosmological hydrodynamic simulations, we can extract information about galaxy positions, velocities, and angular momenta from different time snapshots, as well as stellar formation times, velocities, and positions. Since stellar formation information is typically recorded relative to the simulation box coordinate system, researchers need to build galaxy trajectory and orientation evolution models to determine galaxy states at any given moment, thereby calculating positional information relative to the host galaxy at the time of star formation.
+[![sfr_evolution](./examples/sfr_evolution.png)](./examples/sfr_evolution.png)
