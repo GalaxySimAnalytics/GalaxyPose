@@ -12,7 +12,7 @@ In cosmological simulations, output snapshots contain physical quantities such a
 
 ```bash
 git clone https://github.com/GalaxySimAnalytics/GalaxyPose.git
-cd Galyst
+cd GalaxyPose
 pip install -e .
 ```
 

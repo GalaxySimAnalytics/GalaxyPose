@@ -81,7 +81,7 @@ def plot_sfr_evolution(
         sfh_im,
         shrink=3/4,
         cax=sfh_bar,
-        label=r"$\Sigma_{SFR}\ [\rm M_\odot\ Gyr^{-1} \ kpc^{-2}]$",
+        label=r"$\Sigma_{\rm SFR}\ [\rm M_\odot\ Gyr^{-1} \ kpc^{-2}]$",
         extend='both'
     )
     sfh_bar_pos = sfh_bar.get_position()

@@ -10,7 +10,7 @@ GalaxyPose 是一个用于宇宙学模拟数据分析的 Python 工具包。它�
 
 ```bash
 git clone https://github.com/GalaxySimAnalytics/GalaxyPose.git
-cd Galyst
+cd GalaxyPose
 pip install -e .
 ```
 
