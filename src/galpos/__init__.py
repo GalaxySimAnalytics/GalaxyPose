@@ -6,7 +6,7 @@ from numpy.typing import ArrayLike
 from .orbits import Trajectory
 from .poses import Orientation
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 
 class GalaxyPoseTrajectory:

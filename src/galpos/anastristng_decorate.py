@@ -112,6 +112,7 @@ def make_star_birth(snapshot: Snapshot,
     # Create orbit trajectory
     orbit = GalaxyPoseTrajectory(
         times, pos, vel, 
+        box_size = float(snapshot.properties['boxsize'].in_units("a kpc")),
         angular_momentum=ang_mom, orientation_times=orientation_times)
     
     # Extract particle properties
