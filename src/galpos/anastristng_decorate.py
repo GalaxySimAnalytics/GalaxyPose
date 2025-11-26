@@ -7,7 +7,7 @@ from pynbody.array import SimArray
 
 from .import GalaxyPoseTrajectory
 from .pynbody_decorate import make_star_birth as _make_star_birth
-from .pynbody_decorate import StarBirth, Unit, SimArray
+from .pynbody_decorate import StarBirth, Unit
 
 
 
