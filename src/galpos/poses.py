@@ -196,11 +196,20 @@ class Orientation:
             If times are not strictly increasing or if neither rotations
             nor angular_momentum is provided
         """
-        self.times = np.asarray(times)
+        times = np.asarray(times)
         
-        # Validate times are strictly increasing
-        if not np.all(np.diff(self.times) > 0):
-            raise ValueError("Times must be strictly increasing")
+        # Sort by time if needed
+        if not np.all(np.diff(times) > 0):
+            idx = np.argsort(times)
+            times = times[idx]
+            if rotations is not None:
+                rotations = np.asarray(rotations)[idx]
+            if angular_momentum is not None:
+                angular_momentum = np.asarray(angular_momentum)[idx]
+
+        assert any(np.diff(times) > 0), "Times must be strictly increasing"
+        
+        self.times = times
         
         self.use_angmom_interp: bool = False
         self.rotations: np.ndarray

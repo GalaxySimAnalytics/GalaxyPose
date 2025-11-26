@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 from AnastrisTNG.TNGsimulation import Snapshot
@@ -7,8 +7,40 @@ from pynbody.array import SimArray
 
 from .import GalaxyPoseTrajectory
 from .pynbody_decorate import make_star_birth as _make_star_birth
-from .pynbody_decorate import StarBirth
+from .pynbody_decorate import StarBirth, Unit, SimArray
 
+
+
+def units_transform(array: SimArray, new_units: Union[str, Unit], **convertion_context: Any) -> SimArray:
+    """
+    Transform an array in a simulation to new units.
+    
+    Parameters
+    ----------
+    sim : Any
+        Simulation object containing the array to transform
+    array_name : str
+        Name of the array to transform
+    new_units : str
+        Target units to transform to
+        
+    Returns
+    -------
+    None
+        The array is modified in-place
+    """
+    ratio = array.units.ratio(new_units, **convertion_context)
+    array.units = Unit(new_units)
+    if np.isscalar(ratio):
+        # Simple scalar multiplication for all shapes
+        new_arr = array.view(np.ndarray) * ratio
+    else:
+        # Use broadcasting for 1D, 2D and higher dimensional arrays
+        broadcast_shape = (len(ratio),) + (1,) * (array.ndim - 1)
+        reshaped_ratio = ratio.reshape(broadcast_shape)
+        new_arr = array.view(np.ndarray) * reshaped_ratio
+    new_arr = SimArray(new_arr, new_units)
+    return new_arr
 
 def make_star_birth(snapshot: Snapshot, 
                     ID: int, 
@@ -96,6 +128,10 @@ def make_star_birth(snapshot: Snapshot,
         else:
             pos = evo['GroupCM'] if useCM else evo['GroupPos']
         vel = evo['SubhaloVel'] if issubhalo else evo['GroupVel']
+        times = times.in_units("Gyr")
+        pos = units_transform(pos, "a kpc", a = evo['a'], h=snapshot.properties['h'])
+        vel = units_transform(vel, "a kpc Gyr**-1", a = evo['a'], h=snapshot.properties['h'])
+    
     
     # Determine orientation information
     if user_orient:
@@ -109,10 +145,11 @@ def make_star_birth(snapshot: Snapshot,
             orientation_times = None
             ang_mom = None
 
+
     # Create orbit trajectory
     orbit = GalaxyPoseTrajectory(
         times, pos, vel, 
-        box_size = float(snapshot.properties['boxsize'].in_units("a kpc")),
+        box_size = float(snapshot.properties['boxsize'].in_units("a kpc", **snapshot.conversion_context())),
         angular_momentum=ang_mom, orientation_times=orientation_times)
     
     # Extract particle properties
