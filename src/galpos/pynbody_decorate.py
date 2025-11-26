@@ -7,7 +7,7 @@ in relation to galaxy pose trajectories, allowing for proper alignment
 of stellar positions and velocities with their host galaxies.
 """
 import warnings
-from typing import Union, Any, Optional
+from typing import Union, Any, Optional, Tuple
 from typing_extensions import Self
 
 import numpy as np
@@ -191,6 +191,9 @@ class StarBirth(SimSnap):
             else:
                 print("Galaxy orientation not available")
         return self
+    
+    def final_state(self) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
+        return self.galaxy_orbit.final_state()
     
     def _register_transformation(self, t: Any) -> None:
         warnings.warn(

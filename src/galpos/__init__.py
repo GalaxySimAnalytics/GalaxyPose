@@ -87,6 +87,20 @@ class GalaxyPoseTrajectory:
             return pos, vel, rot
         else:
             return pos, vel, None
+        
+    def final_state(self) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
+        """
+        Get the final state of the galaxy (position, velocity, rotation).
+
+        Returns
+        -------
+        tuple
+            (position, velocity, rotation_matrix)
+        """
+        pos = self.trajectory.positions[-1]
+        vel = self.trajectory.velocities[-1] if self.trajectory.velocities is not None else None
+        rot = self.orientation.rotations[-1] if self.orientation is not None else None
+        return pos, vel, rot
 
     def get_acceleration(self, 
                          t: Union[float, ArrayLike], 
