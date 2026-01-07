@@ -1,12 +1,19 @@
 # GalaxyPose
 
-GalaxyPose is a Python toolkit for analyzing cosmological simulation data. It focuses on building galaxy trajectory and orientation evolution models, addressing the issue of time intervals between cosmological simulation snapshots, and enabling researchers to obtain galaxy state information at any arbitrary moment.
+GalaxyPose is a Python toolkit for analyzing cosmological simulation data. It provides continuous models for **galaxy trajectories (position/velocity)** and **orientations** from discrete simulation snapshots, enabling galaxy states to be evaluated at arbitrary times.
 
-
-[中文版本](https://github.com/GalaxySimAnalytics/GalaxyPose/blob/main/README_cn.md)
+[中文版本](./README_cn.md)
 
 # Overview
-In cosmological simulations, output snapshots contain physical quantities such as galaxy position, velocity, and angular momentum. However, due to time intervals between these snapshots, we need to construct continuous evolution models to infer galaxy states at arbitrary times. GalaxyPose is designed to solve this problem, and is also applicable for processing other similar trajectory and orientation data.
+Cosmological simulations output snapshots containing galaxy properties such as position, velocity, and angular momentum. Because snapshots are separated by finite time intervals, many analyses require a continuous description of a galaxy’s motion and orientation between snapshots. GalaxyPose offers interpolation-based models to bridge these gaps and query galaxy states at any time within (and optionally beyond) the sampled range.
+
+## Key Features
+
+- **Trajectory interpolation** with periodic-box support (unwrap/wrap handling).
+- **Orientation interpolation**
+  - from rotation matrices (quaternion-based smooth interpolation), or
+  - from angular momentum directions (useful when only disk axis is needed).
+- **Birth-frame alignment utilities** to express stellar birth positions/velocities in the host-galaxy frame (via `pynbody`).
 
 # Installation
 
@@ -16,7 +23,8 @@ cd GalaxyPose
 pip install -e .
 ```
 
-# Use Cases
+## Use Cases
 
-In cosmological hydrodynamic simulations, we can extract information about galaxy positions, velocities, and angular momenta from different time snapshots, as well as stellar formation times, velocities, and positions. Since stellar formation information is typically recorded relative to the simulation box coordinate system, researchers need to build galaxy trajectory and orientation evolution models to determine galaxy states at any given moment, thereby calculating positional information relative to the host galaxy at the time of star formation.
+In cosmological hydrodynamic simulations, stellar formation properties (formation time, birth position, birth velocity) are often recorded in the simulation box frame. To compute quantities relative to a host galaxy at formation time, you need the host galaxy’s position, velocity, and (optionally) orientation at that same moment. GalaxyPose supports building these continuous models and aligning particle birth properties to the host-galaxy frame.
+
 [![sfr_evolution](./examples/sfr_evolution.png)](./examples/sfr_evolution.png)
