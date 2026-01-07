@@ -1,3 +1,50 @@
+"""
+galpos
+======
+
+A lightweight toolbox for representing galaxy motion (trajectory) and orientation
+as continuous functions of time.
+
+The public API centers around :class:`~galpos.GalaxyPoseTrajectory`, which bundles:
+
+- :class:`~galpos.orbits.Trajectory` for position/velocity (and optional acceleration)
+- :class:`~galpos.poses.Orientation` for rotation matrices over time
+
+Typical workflow
+----------------
+1. Build a trajectory from discrete snapshots (t, pos, vel [, acc]).
+2. (Optional) Build an orientation from rotation matrices or angular momentum.
+3. Evaluate the galaxy state at arbitrary times.
+
+Examples
+--------
+Create a trajectory with position and velocity and query an intermediate time:
+
+>>> import numpy as np
+>>> from galpos import GalaxyPoseTrajectory
+>>> t = np.array([0.0, 1.0, 2.0])
+>>> pos = np.array([[0, 0, 0],
+...                 [1, 0, 0],
+...                 [2, 0, 0]], dtype=float)
+>>> vel = np.array([[1, 0, 0],
+...                 [1, 0, 0],
+...                 [1, 0, 0]], dtype=float)
+>>> gpt = GalaxyPoseTrajectory(t, pos, vel)
+>>> p, v, r = gpt(0.5)
+>>> p.shape, v.shape, r
+((3,), (3,), None)
+
+Add an orientation using angular momentum directions:
+
+>>> ang = np.array([[0, 0, 1],
+...                 [0, 1, 1],
+...                 [0, 1, 0]], dtype=float)
+>>> gpt = GalaxyPoseTrajectory(t, pos, vel, angular_momentum=ang)
+>>> p, v, rot = gpt(1.2)
+>>> rot.shape
+(3, 3)
+"""
+
 from typing import Optional, Union, Tuple
 
 import numpy as np
@@ -11,11 +58,58 @@ __version__ = "0.1.1"
 
 class GalaxyPoseTrajectory:
     """
-    Represents the complete trajectory of a galaxy, including position, 
-    velocity and orientation over time.
-    
-    This class combines the functionality of Trajectory and Orientation
-    to provide a complete representation of a galaxy's motion and orientation.
+    Bundle of a galaxy's translational trajectory and (optional) orientation.
+
+    This class is a thin convenience wrapper around:
+
+    - :class:`galpos.orbits.Trajectory` (position/velocity/acceleration)
+    - :class:`galpos.poses.Orientation` (rotation matrices vs. time)
+
+    Parameters
+    ----------
+    times : array_like, shape (N,)
+        Sample times (must be strictly increasing; unsorted inputs are sorted).
+    positions : array_like, shape (N,) or (N, ndim)
+        Sampled positions.
+    velocities : array_like, optional, shape (N,) or (N, ndim)
+        Sampled velocities. If omitted and `accelerations` is also omitted,
+        the trajectory may fall back to a method that estimates derivatives.
+    rotations : ndarray, optional, shape (N, 3, 3)
+        Rotation matrices at the provided `orientation_times` (or `times` if
+        `orientation_times` is not given).
+    angular_momentum : ndarray, optional, shape (N, 3)
+        Angular momentum vectors used to derive a "face-on" rotation matrix.
+        Used when `rotations` is not provided.
+    accelerations : array_like, optional, shape (N,) or (N, ndim)
+        Sampled accelerations. If provided, a higher-order interpolator may be used.
+    box_size : float, optional
+        Periodic box size. If set, the internal interpolator unwraps positions to
+        avoid discontinuities; outputs can be wrapped on demand.
+    trajectory_method : {'spline', 'polynomial', 'pchip'}, default='spline'
+        Interpolation strategy passed to :class:`galpos.orbits.Trajectory`.
+    orientation_times : array_like, optional, shape (N,)
+        Time grid for orientation samples. Defaults to `times`.
+
+    Notes
+    -----
+    - Calling an instance returns ``(pos, vel, rot)``, where ``rot`` may be ``None``
+      if no orientation was provided.
+    - Use :meth:`final_state` to fetch the last sampled state without interpolation.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from galpos import GalaxyPoseTrajectory
+    >>> t = np.array([0., 1., 2.])
+    >>> pos = np.array([[0., 0., 0.],
+    ...                 [1., 0., 0.],
+    ...                 [2., 0., 0.]])
+    >>> vel = np.array([[1., 0., 0.],
+    ...                 [1., 0., 0.],
+    ...                 [1., 0., 0.]])
+    >>> g = GalaxyPoseTrajectory(t, pos, vel)
+    >>> g(1.5)[0]
+    array([1.5, 0. , 0. ])
     """
 
     def __init__(self,
@@ -31,19 +125,28 @@ class GalaxyPoseTrajectory:
         """
         Parameters
         ----------
-        times : array_like
-            Time array (N,)
-        positions : array_like
-            Position array (N,) or (N, ndim)
-        velocities : array_like
-            Velocity array (N,) or (N, ndim)
-        rotations : array_like, optional
-            Rotation array (N, 3, 3)
-        angular_momentum : array_like, optional
-            Angular momentum vectors (N, 3) representing disk orientation.
+        times : array_like, shape (N,)
+            Sample times (must be strictly increasing; unsorted inputs are sorted).
+        positions : array_like, shape (N,) or (N, ndim)
+            Sampled positions.
+        velocities : array_like, optional, shape (N,) or (N, ndim)
+            Sampled velocities. If omitted and `accelerations` is also omitted,
+            the trajectory may fall back to a method that estimates derivatives.
+        rotations : ndarray, optional, shape (N, 3, 3)
+            Rotation matrices at the provided `orientation_times` (or `times` if
+            `orientation_times` is not given).
+        angular_momentum : ndarray, optional, shape (N, 3)
+            Angular momentum vectors used to derive a "face-on" rotation matrix.
+            Used when `rotations` is not provided.
+        accelerations : array_like, optional, shape (N,) or (N, ndim)
+            Sampled accelerations. If provided, a higher-order interpolator may be used.
         box_size : float, optional
-            Size of the periodic box. 
-            If specified, positions will be wrapped to the box (0 ~ box_size)
+            Periodic box size. If set, the internal interpolator unwraps positions to
+            avoid discontinuities; outputs can be wrapped on demand.
+        trajectory_method : {'spline', 'polynomial', 'pchip'}, default='spline'
+            Interpolation strategy passed to :class:`galpos.orbits.Trajectory`.
+        orientation_times : array_like, optional, shape (N,)
+            Time grid for orientation samples. Defaults to `times`.
         """
         self.trajectory: Trajectory = Trajectory(
             times, positions, velocities, 
@@ -64,21 +167,41 @@ class GalaxyPoseTrajectory:
                  extrapolate: bool = False
                  ) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
         """
-        Evaluate galaxy state at time t.
-        
+        Evaluate galaxy position/velocity/(optional) orientation at time(s) ``t``.
+
         Parameters
         ----------
-        t : float
-            Time at which to evaluate
+        t : float or array_like
+            Query time(s).
         wrap : bool, default=False
-            If True, return positions wrapped to the periodic box
+            If True and `box_size` was provided, wrap positions back into ``[0, L)``.
         extrapolate : bool, default=False
-            If False, return NaN for times outside input range
-        
+            If False, values outside the input time range typically become NaN
+            (implementation-dependent for trajectory/orientation).
+
         Returns
         -------
-        tuple
-            (position, velocity, rotation_matrix)
+        position : ndarray
+            Shape ``(ndim,)`` for scalar ``t`` or ``(M, ndim)`` for array input.
+        velocity : ndarray
+            Same shape convention as `position`.
+        rotation_matrix : ndarray or None
+            Shape ``(3, 3)`` (scalar input) or ``(M, 3, 3)`` (array input),
+            or ``None`` if no orientation model is available.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from galpos import GalaxyPoseTrajectory
+        >>> t = np.array([0., 1., 2.])
+        >>> pos = np.array([[0., 0., 0.],
+        ...                 [1., 0., 0.],
+        ...                 [2., 0., 0.]])
+        >>> vel = np.ones_like(pos)
+        >>> g = GalaxyPoseTrajectory(t, pos, vel)
+        >>> p, v, r = g([0.5, 1.5])
+        >>> p.shape, v.shape, r
+        ((2, 3), (2, 3), None)
         """
         pos, vel = self.trajectory(t, wrap, extrapolate)
         
@@ -90,12 +213,16 @@ class GalaxyPoseTrajectory:
         
     def final_state(self) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
         """
-        Get the final state of the galaxy (position, velocity, rotation).
+        Return the last *sampled* state (no interpolation).
 
         Returns
         -------
-        tuple
-            (position, velocity, rotation_matrix)
+        position : ndarray
+            Last sampled position.
+        velocity : ndarray or None
+            Last sampled velocity if present, else None.
+        rotation_matrix : ndarray or None
+            Last sampled rotation matrix if present, else None.
         """
         pos = self.trajectory.positions[-1]
         vel = self.trajectory.velocities[-1] if self.trajectory.velocities is not None else None
@@ -107,21 +234,19 @@ class GalaxyPoseTrajectory:
                          extrapolate: bool = False
                          ) -> np.ndarray:
         """
-        Get the acceleration of the galaxy at time t.
+        Evaluate acceleration at time(s) ``t``.
 
         Parameters
         ----------
-        t : float
-            Time at which to evaluate
-        wrap : bool, default=False
-            If True, return accelerations wrapped to the periodic box
+        t : float or array_like
+            Query time(s).
         extrapolate : bool, default=False
-            If False, return NaN for times outside input range
+            If False, times outside the input range typically return NaN.
 
         Returns
         -------
         ndarray
-            Acceleration vector (N,3) or (N,). NaN if outside input range
+            Acceleration with shape ``(ndim,)`` or ``(M, ndim)``.
         """
         return self.trajectory.get_acceleration(t, extrapolate)
     
