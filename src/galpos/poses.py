@@ -3,6 +3,49 @@ Orientation and rotation utilities for 3D simulations.
 
 This module provides classes and functions for representing and interpolating
 3D orientations over time, using quaternions and rotation matrices.
+
+Rotation representation (math)
+------------------------------
+A 3D rotation can be represented by:
+
+- a rotation matrix R ∈ SO(3), or
+- a unit quaternion q (‖q‖=1), with q and -q encoding the same rotation.
+
+Quaternion interpolation is often numerically stable and avoids gimbal lock.
+
+Interpolation options implemented here
+--------------------------------------
+1) Rotation-matrix input → quaternion SQUAD
+   If you provide rotation matrices R_i at times t_i, we convert them to unit quaternions q_i
+   and interpolate on each interval using SQUAD (spherical quadrangle), which is a smooth
+   spline-like extension of SLERP.
+
+   Let h = (t - t_i)/(t_{i+1}-t_i). Define:
+   - u(h) = slerp(q_i, q_{i+1}, h)
+   - v(h) = slerp(s_i, s_{i+1}, h)   (s_i are control points computed from neighboring q's)
+   Then the SQUAD curve is:
+   - q(h) = slerp(u(h), v(h), 2h(1-h))
+
+   This typically gives smoother angular velocity than plain per-interval SLERP.
+
+2) Angular-momentum input → direction SLERP + frame construction
+   If you provide angular momentum vectors L_i, we normalize them into directions
+   z_i = L_i / ‖L_i‖ (fallback to [0,0,1] if near-zero), interpolate directions by SLERP:
+   - z(h) = slerp(z_i, z_{i+1}, h)
+
+   Then we build a right-handed basis (x,y,z) using a reference up vector u (default [0,1,0]):
+   - x = normalize(u × z)  (if nearly zero, choose an alternative up vector)
+   - y = z × x
+   and return R = [x; y; z] (rows as basis vectors).
+
+When to use which mode
+----------------------
+- Use **rotations → SQUAD** when you already have reliable rotation matrices per snapshot
+  (e.g., from a rigid-body solver or halo finder) and want smooth interpolation in time.
+- Use **angular_momentum → direction SLERP** when you only care about aligning the galaxy
+  disk/face-on direction and do not have a full rotation about that axis. This approach
+  fixes the remaining degree of freedom using the chosen up-vector, so it is best when
+  a consistent “up” reference makes sense for your analysis pipeline.
 """
 
 from typing import Union, Optional, List
@@ -163,12 +206,68 @@ def calculate_face_on_matrix(
 
 class Orientation:
     """
-    Represents the orientation/rotation of an object over time.
-    
-    This class handles orientation trajectories using quaternion interpolation,
-    supporting both rotation matrices and angular momentum vectors as input.
-    The orientation can be evaluated at any time within the provided time range
-    using spherical interpolation techniques.
+    Time-dependent orientation model returning rotation matrices.
+
+    Interpolation model (math)
+    --------------------------
+    Two initialization modes are supported:
+
+    A) rotations (R_i) → SQUAD over unit quaternions q_i
+       - Convert R_i → q_i (unit quaternions, with sign consistency handled during SLERP).
+       - For t in [t_i, t_{i+1}], compute h in [0,1] and evaluate SQUAD:
+         q(h) = slerp(slerp(q_i,q_{i+1},h), slerp(s_i,s_{i+1},h), 2h(1-h))
+       - Convert q(h) back to R(t).
+
+    B) angular momentum (L_i) → direction SLERP
+       - Normalize L_i to z_i; interpolate z(h) on the unit sphere using SLERP.
+       - Build R(t) by constructing a right-handed basis from (x,y,z) with a reference up.
+
+    Conditions / practical notes
+    ----------------------------
+    - `times` must be strictly increasing after sorting.
+    - Quaternion interpolation assumes rotations vary smoothly; discontinuous flips in the
+      input R_i will still produce sharp changes.
+    - Direction-based interpolation does not encode rotation about the disk axis; the chosen
+      up-vector fixes that gauge and should be consistent across your dataset.
+
+    Parameters
+    ----------
+    times : array_like, shape (N,)
+        Sample times (must be strictly increasing; unsorted inputs are sorted).
+    rotations : ndarray, optional, shape (N, 3, 3)
+        Rotation matrices at `times`.
+    angular_momentum : ndarray, optional, shape (N, 3)
+        Angular momentum vectors at `times`. Used if `rotations` is None.
+
+    Raises
+    ------
+    ValueError
+        If neither `rotations` nor `angular_momentum` is provided.
+
+    Examples
+    --------
+    From angular momentum directions:
+
+    >>> import numpy as np
+    >>> from galpos.poses import Orientation
+    >>> t = np.array([0., 1., 2.])
+    >>> L = np.array([[0., 0., 1.],
+    ...               [0., 1., 1.],
+    ...               [0., 1., 0.]])
+    >>> o = Orientation(t, angular_momentum=L)
+    >>> R = o(1.2)
+    >>> R.shape
+    (3, 3)
+
+    From explicit rotation matrices:
+
+    >>> import numpy as np
+    >>> from galpos.poses import Orientation
+    >>> t = np.array([0., 1., 2.])
+    >>> Rm = np.repeat(np.eye(3)[None, :, :], 3, axis=0)
+    >>> o = Orientation(t, rotations=Rm)
+    >>> np.allclose(o(0.3), np.eye(3))
+    True
     """
     
     def __init__(
@@ -282,20 +381,20 @@ class Orientation:
         extrapolate: bool = False
     ) -> np.ndarray:
         """
-        Evaluate orientation at specified time(s).
-        
+        Evaluate rotation matrix/matrices at time(s) ``t``.
+
         Parameters
         ----------
-        t : float or np.ndarray
-            Time(s) at which to evaluate orientation
+        t : float or ndarray
+            Query time(s).
         extrapolate : bool, default=False
-            If False, return NaN for times outside input range.
-            If True, extrapolate orientation using nearest value.
-        
+            If False, out-of-range times return NaN matrices.
+
         Returns
         -------
-        np.ndarray
-            Shape (3,3) or (n,3,3) rotation matrix or matrices
+        ndarray
+            For scalar input: shape ``(3, 3)``.
+            For array input: shape ``(M, 3, 3)``.
         """
         # Convert input to array for consistent processing
         t_array = np.atleast_1d(t)

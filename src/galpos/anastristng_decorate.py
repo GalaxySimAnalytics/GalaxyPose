@@ -1,3 +1,26 @@
+"""
+anastristng_decorate
+====================
+
+Integration helpers for building :class:`galpos.pynbody_decorate.StarBirth`
+objects from `AnastrisTNG` snapshots.
+
+This module extracts:
+
+- host galaxy evolution (pos/vel/spin) from AnastrisTNG
+- particle birth properties (BirthPos/BirthVel/tform/aform)
+and then delegates to :func:`galpos.pynbody_decorate.make_star_birth`.
+
+Examples
+--------
+Typical usage pattern (requires AnastrisTNG + pynbody):
+
+>>> from AnastrisTNG.TNGsimulation import Snapshot
+>>> from galpos.anastristng_decorate import make_star_birth
+>>> snap = Snapshot(...)
+>>> sb = make_star_birth(snap, ID=12345, issubhalo=True)
+>>> sb = sb.align_with_galaxy()
+"""
 from typing import Any, Optional, Union
 
 import numpy as np
@@ -13,21 +36,21 @@ from .pynbody_decorate import StarBirth, Unit
 
 def units_transform(array: SimArray, new_units: Union[str, Unit], **convertion_context: Any) -> SimArray:
     """
-    Transform an array in a simulation to new units.
-    
+    Convert a `pynbody` SimArray to new units and return a new SimArray.
+
     Parameters
     ----------
-    sim : Any
-        Simulation object containing the array to transform
-    array_name : str
-        Name of the array to transform
-    new_units : str
-        Target units to transform to
-        
+    array : pynbody.array.SimArray
+        Input array with units.
+    new_units : str or pynbody.units.Unit
+        Target units.
+    **convertion_context
+        Conversion context passed to ``array.units.ratio(...)`` (e.g. ``a=...``, ``h=...``).
+
     Returns
     -------
-    None
-        The array is modified in-place
+    pynbody.array.SimArray
+        A new array in `new_units` (input is not modified).
     """
     ratio = array.units.ratio(new_units, **convertion_context)
     array.units = Unit(new_units)
@@ -53,36 +76,39 @@ def make_star_birth(snapshot: Snapshot,
                     useBirthmass: bool = False,
                     ) -> StarBirth:
     """
-    Create a StarBirth object from a snapshot and particle ID.
-    This function extracts the necessary information from the snapshot
-    and constructs a StarBirth object representing the stellar birth
-    properties of the specified particle.
+    Construct :class:`galpos.pynbody_decorate.StarBirth` for one (sub)halo in AnastrisTNG.
+
+    The function loads star particle birth properties and host galaxy evolution,
+    builds a :class:`galpos.GalaxyPoseTrajectory`, and returns a :class:`StarBirth`
+    snapshot.
 
     Parameters
     ----------
-    snapshot : Snapshot
-        The snapshot from which to extract particle data
+    snapshot : AnastrisTNG.TNGsimulation.Snapshot
+        Simulation snapshot handle.
     ID : int
-        The ID to extract
+        Subhalo/Halo identifier.
     issubhalo : bool, default=True
-        Whether the ID corresponds to a subhalo or a main halo
-    host_t : SimArray, optional
-        User-provided host galaxy's time array
-    host_pos : SimArray, optional
-        User-provided host galaxy's position array
-    host_vel : SimArray, optional
-        User-provided host galaxy's velocity array
-    angular_momentum : Union[np.ndarray, SimArray], optional
-        User-provided angular momentum of the host galaxy
+        If True, treat `ID` as a Subhalo; otherwise a Halo.
+    host_t, host_pos, host_vel : SimArray, optional
+        User-provided host trajectory samples. If all provided, host evolution
+        will not be loaded from the snapshot for pose.
+    angular_momentum : ndarray or SimArray, optional
+        User-provided host angular momentum samples used for orientation.
     useCM : bool, default=False
-        Whether to use the center of mass for positioning
+        If True, use center-of-mass positions when available.
     useBirthmass : bool, default=False
-        Whether to use the birth mass instead of the current mass
+        If True, use birth mass (GFM_InitialMass); else use current mass.
 
     Returns
     -------
     StarBirth
-        A StarBirth object containing the extracted properties
+        Birth snapshot decorated with cosmology properties.
+
+    Examples
+    --------
+    >>> # sb = make_star_birth(snapshot, ID=..., issubhalo=True)
+    >>> # sb = sb.align_with_galaxy()
     """
     originfield = snapshot.load_particle_para['star_fields'].copy()
     snapshot.load_particle_para['star_fields'] = [

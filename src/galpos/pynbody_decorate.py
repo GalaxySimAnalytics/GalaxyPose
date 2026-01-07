@@ -25,17 +25,17 @@ __all__ = ["make_star_birth", "StarBirth"]
 
 def units_transform(sim: SimSnap, array_name: str, new_units: Union[str, Unit]) -> None:
     """
-    Transform an array in a simulation to new units.
-    
+    In-place unit conversion for a named array inside a `pynbody` SimSnap.
+
     Parameters
     ----------
-    sim : Any
-        Simulation object containing the array to transform
+    sim : pynbody.snapshot.SimSnap
+        The snapshot containing the target array.
     array_name : str
-        Name of the array to transform
-    new_units : str
-        Target units to transform to
-        
+        Array key, e.g. ``'pos'`` or ``'vel'``.
+    new_units : str or pynbody.units.Unit
+        Target unit string or Unit.
+
     Returns
     -------
     None
@@ -57,26 +57,23 @@ def units_transform(sim: SimSnap, array_name: str, new_units: Union[str, Unit]) 
 
 class StarBirth(SimSnap):
     """
-    Class representing stellar birth data aligned with galaxy trajectory.
+    A `pynbody` snapshot representing stellar birth properties aligned to a host galaxy.
 
-    Inherits from pynbody.snapshot.SimSnap and provides methods to align
-    stellar positions and velocities with their host galaxy's trajectory
-    and orientation.
-    
+    The object stores birth ``pos``, ``vel``, ``mass`` and ``tform`` arrays and a
+    reference to the host :class:`galpos.GalaxyPoseTrajectory`.
+
     Parameters
     ----------
-    pos : SimArray
-        Birth positions of stars
-    vel : SimArray
-        Birth velocities of stars
-    mass : SimArray
-        Masses of stars
-    time : SimArray
-        Formation times of stars
-    scale_factor : np.ndarray
-        Scale factors at formation times
-    galaxy_orbit : GalaxyPoseTrajectory
-        Galaxy trajectory and orientation data
+    pos, vel, mass, time : pynbody.array.SimArray
+        Birth properties.
+    scale_factor : ndarray
+        Scale factor at formation times. Stored in ``self.properties['a']``.
+    galaxy_orbit : galpos.GalaxyPoseTrajectory
+        Host trajectory/orientation used for alignment.
+
+    See Also
+    --------
+    make_star_birth : Convenience constructor producing a :class:`StarBirth`.
     """
     def __init__(self, pos: SimArray, vel: SimArray, mass: SimArray, 
                  time: SimArray, scale_factor: np.ndarray, 
@@ -134,23 +131,27 @@ class StarBirth(SimSnap):
 
     def align_with_galaxy(self, orientation_align: bool = True) -> Self:
         """
-        Align star positions and velocities with their host galaxy.
-        
-        This method performs two operations:
-        1. Center positions and velocities relative to the galaxy's position 
-        and velocity
-        2. (Optional) Orient positions and velocities according to the 
-        galaxy's orientation
-        
+        Center (and optionally rotate) star birth coordinates into the host frame.
+
+        Steps
+        -----
+        1. Subtract host position/velocity at each particle's formation time.
+        2. If host orientation is available and `orientation_align=True`,
+           rotate positions/velocities by the host rotation matrix at formation time.
+
         Parameters
         ----------
         orientation_align : bool, default=True
-            Whether to align with galaxy orientation in addition to position
-            
+            Whether to apply orientation alignment in addition to centering.
+
         Returns
         -------
-        None
-            The positions and velocities are modified in-place
+        StarBirth
+            Returns ``self`` to allow chaining.
+
+        Examples
+        --------
+        >>> sb = sb.align_with_galaxy(orientation_align=True)
         """
 
         if (self.__already_centered and 
@@ -215,41 +216,39 @@ def make_star_birth(galaxy_orbit: GalaxyPoseTrajectory,
                mass_units: str = "Msol",
                cosmology_params: Optional[dict] = None) -> StarBirth:
     """
-    Create a StarBirth object from stellar birth data.
-    
+    Build a :class:`StarBirth` snapshot from raw birth arrays.
+
     Parameters
     ----------
-    galaxy_orbit : GalaxyPoseTrajectory
-        Galaxy trajectory and orientation data
-    birth_pos : np.ndarray
-        Birth positions of stars
-    birth_time : np.ndarray
-        Formation times of stars
-    birth_velocity : np.ndarray
-        Birth velocities of stars
-    mass : np.ndarray
-        Masses of stars
-    scale_factor : np.ndarray
-        Scale factors at formation times
-    birth_pos_units : str, default="kpc"
-        Units for birth positions
-    birth_time_units : str, default="Gyr"
-        Units for birth times
-    birth_velocity_units : str, default="kpc Gyr**-1"
-        Units for birth velocities
-    mass_units : str, default="Msol"
-        Units for masses
+    galaxy_orbit : galpos.GalaxyPoseTrajectory
+        Host galaxy trajectory/orientation.
+    birth_time : ndarray, shape (N,)
+        Formation times.
+    birth_pos : ndarray, shape (N, 3)
+        Formation positions.
+    birth_velocity : ndarray, shape (N, 3)
+        Formation velocities.
+    mass : ndarray, shape (N,)
+        Stellar masses (birth or current, depending on your upstream choice).
+    scale_factor : ndarray, shape (N,)
+        Scale factor at formation time.
+    birth_pos_units, birth_time_units, birth_velocity_units, mass_units : str
+        Unit strings used to construct `pynbody` SimArray objects.
     cosmology_params : dict, optional
-        Cosmology parameters to include in the StarBirth object
+        If provided, copied into ``StarBirth.properties``.
 
     Returns
     -------
     StarBirth
-        A new StarBirth object with the provided data
-        
+        Snapshot holding the birth properties.
+
     Notes
     -----
-    Invalid particles with scale factors outside (0,1] will be removed.
+    Particles with ``scale_factor`` outside ``(0, 1]`` are removed.
+
+    Examples
+    --------
+    See module-level example.
     """
     sel = (scale_factor > 0) & (scale_factor <= 1)
     if not sel.all():

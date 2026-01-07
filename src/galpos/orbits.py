@@ -1,3 +1,97 @@
+"""
+Trajectory utilities (translation only).
+
+This module provides:
+
+- helpers for periodic boxes (:func:`wrap_to_box`, :func:`unwrap_positions`)
+- :class:`Trajectory`: continuous interpolation of position/velocity/(optional) acceleration
+
+Interpolation methods
+---------------------
+Let sampled times be ``t_i`` and positions be ``x_i`` (vector in R^ndim). The goal is to
+construct a continuous function ``x(t)`` and its derivatives ``v(t)=dx/dt`` and optionally
+``a(t)=d^2x/dt^2``.
+
+Supported strategies:
+
+1) ``method='spline'`` (Cubic Hermite spline)
+   You provide both ``x_i`` and ``v_i``. On each interval ``[t_i, t_{i+1}]``, a cubic
+   polynomial is constructed so that:
+
+   - ``x(t_i) = x_i``, ``x(t_{i+1}) = x_{i+1}``
+   - ``x'(t_i) = v_i``, ``x'(t_{i+1}) = v_{i+1}``
+
+   This yields a globally C^1 trajectory (continuous position and velocity).
+
+2) ``method='polynomial'`` (piecewise cubic/quintic with endpoint constraints)
+   - Cubic: match position + velocity at endpoints (same constraints as Hermite).
+   - Quintic: match position + velocity + acceleration at endpoints:
+
+     ``x(t_i)=x_i, x'(t_i)=v_i, x''(t_i)=a_i`` and same at ``t_{i+1}``.
+
+   This yields C^2 continuity *inside each interval* and a physically smoother profile when
+   accelerations are meaningful and not too noisy.
+
+3) ``method='pchip'`` (PCHIP on positions)
+   You provide only ``x_i``. PCHIP builds a shape-preserving, piecewise cubic interpolant
+   for each component, and velocities/accelerations are derived by differentiating the
+   interpolant. This is useful when you do not trust provided velocities.
+
+Periodic boundary conditions
+----------------------------
+If a periodic box of size ``L`` is used, positions may jump by ~L at wrap boundaries.
+We “unwrap” the samples to a continuous representation using the minimal-image convention:
+
+``Δ = x_i - x_{i-1}``
+``Δ ← Δ - round(Δ / L) * L``
+``x_unwrapped[i] = x_unwrapped[i-1] + Δ``
+
+Evaluation can optionally wrap back via ``x mod L``.
+
+When to use which method
+------------------------
+- Use **'spline'** when you have trustworthy velocities and want a smooth C^1 path.
+  Typical for simulation outputs storing consistent pos/vel.
+- Use **'polynomial'** with accelerations when you want smoother kinematics (C^2-like)
+  and accelerations are not dominated by noise.
+- Use **'pchip'** when velocities are missing/unreliable, and you prefer shape-preserving
+  interpolation over potentially oscillatory splines.
+
+Examples
+--------
+Basic usage with explicit velocity samples:
+
+>>> import numpy as np
+>>> from galpos.orbits import Trajectory
+>>> t = np.array([0., 1., 2.])
+>>> pos = np.array([[0., 0., 0.],
+...                 [1., 0., 0.],
+...                 [2., 0., 0.]])
+>>> vel = np.array([[1., 0., 0.],
+...                 [1., 0., 0.],
+...                 [1., 0., 0.]])
+>>> tr = Trajectory(t, pos, vel, method="spline")
+>>> tr(0.5)[0]
+array([0.5, 0. , 0. ])
+
+Periodic box: unwrap internally, wrap on output:
+
+>>> L = 10.0
+>>> pos = np.array([[9.5, 0, 0],
+...                 [0.2, 0, 0],
+...                 [1.0, 0, 0]], dtype=float)
+>>> vel = np.array([[1, 0, 0],
+...                 [1, 0, 0],
+...                 [1, 0, 0]], dtype=float)
+>>> tr = Trajectory(t, pos, vel, box_size=L, method="spline")
+>>> p_unwrapped, _ = tr(0.5, wrap=False)
+>>> p_wrapped, _ = tr(0.5, wrap=True)
+>>> p_unwrapped[0] > 9
+True
+>>> 0 <= p_wrapped[0] < L
+True
+"""
+
 from typing import Optional, Tuple, Union
 
 import numpy as np
@@ -27,18 +121,27 @@ def wrap_to_box(x: ArrayLike, L: float) -> np.ndarray:
 def unwrap_positions(pos: ArrayLike, L: float) -> np.ndarray:
     """
     Unwrap periodic boundary jumps to create continuous trajectories.
-    
+
+    Mathematical idea
+    -----------------
+    Given wrapped samples x_i in [0, L), we reconstruct a continuous series by applying
+    a minimal-image correction to each step:
+
+    ``Δ_i = x_i - x_{i-1}``
+    ``Δ_i ← Δ_i - round(Δ_i / L) * L``
+    ``x_unwrapped[i] = x_unwrapped[i-1] + Δ_i``
+
     Parameters
     ----------
     pos : array_like
-        Array of positions with possible boundary jumps
+        Array of positions with possible boundary jumps.
     L : float
-        Box size
-        
+        Box size.
+
     Returns
     -------
     np.ndarray
-        Unwrapped positions with continuous trajectories
+        Unwrapped positions with continuous trajectories.
     """
     pos = np.asarray(pos, dtype=float)
     unwrapped = pos.copy()
@@ -50,14 +153,26 @@ def unwrap_positions(pos: ArrayLike, L: float) -> np.ndarray:
 
 class PolynomialInterpolator(PPoly):
     """
-    Polynomial interpolation with position, velocity, and optional acceleration 
-    constraints.
-    
-    Implements a piecewise polynomial interpolator that matches:
-    - For cubic polynomial: position and velocity at endpoints
-    - For quintic polynomial: position, velocity, and acceleration at endpoints
-    
-    The polynomial degree is automatically determined based on the provided constraints.
+    Piecewise polynomial interpolation with endpoint derivative constraints.
+
+    Mathematical form
+    -----------------
+    On each interval [x_i, x_{i+1}] we use a local coordinate τ = (t - x_i) with
+    τ in [0, dx], dx = x_{i+1}-x_i, and fit:
+
+    - Cubic:   p(τ)=a0 + a1 τ + a2 τ^2 + a3 τ^3
+      constraints: p(0)=y_i, p(dx)=y_{i+1}, p'(0)=y'_i, p'(dx)=y'_{i+1}
+
+    - Quintic: p(τ)=a0 + a1 τ + a2 τ^2 + a3 τ^3 + a4 τ^4 + a5 τ^5
+      constraints additionally include p''(0)=y''_i and p''(dx)=y''_{i+1}
+
+    The implementation solves the resulting linear system per segment (and per component).
+
+    When to use
+    -----------
+    - Cubic is appropriate when you trust velocities but do not have accelerations.
+    - Quintic is appropriate when you also have accelerations and want smoother motion,
+      but it can overfit if accelerations are noisy.
     """
 
     def __init__(self, 
@@ -284,15 +399,60 @@ class PolynomialInterpolator(PPoly):
 
 class Trajectory:
     """
-    Represents the time evolution of position and velocity for an object.
-    
-    Handles spatial trajectories including position and velocity interpolation,
-    with optional support for periodic boundary conditions.
-    
-    Interpolation methods:
-    1. Cubic Hermite spline for positions and velocities
-    2. Quintic polynomial for positions, velocities and accelerations
-    3. PCHIP for positions only (velocities estimated automatically)
+    Continuous trajectory model for translation (position/velocity/acceleration).
+
+    Interpolation model (math)
+    --------------------------
+    Given sampled times t_i and positions x_i, the class constructs an interpolant x(t).
+    Velocity and acceleration are obtained by analytic differentiation of the interpolant:
+
+    - v(t) = d x(t) / dt
+    - a(t) = d^2 x(t) / dt^2
+
+    Method selection and assumptions
+    --------------------------------
+    - 'spline' (CubicHermiteSpline): assumes provided velocities v_i are consistent with x_i.
+      Produces C^1 continuity globally.
+    - 'polynomial' (PolynomialInterpolator):
+      * cubic if only (x_i, v_i) are given
+      * quintic if (x_i, v_i, a_i) are given
+    - 'pchip' (PchipInterpolator): assumes only x_i are reliable; v(t), a(t) are derived
+      from the fitted curve.
+
+    Practical guidance
+    ------------------
+    - If you care about **physical kinematics**, prefer methods that use real velocities
+      (Hermite/polynomial) rather than derivatives estimated from positions.
+    - If positions are in a periodic box, set `box_size` so interpolation happens in an
+      unwrapped space; otherwise you may interpolate across discontinuities.
+
+    Parameters
+    ----------
+    times : array_like, shape (N,)
+        Sample times (must be strictly increasing; unsorted inputs are sorted).
+    positions : array_like, shape (N,) or (N, ndim)
+        Sampled positions.
+    velocities : array_like, optional
+        Sampled velocities. Required for ``method='spline'`` and recommended for
+        best physical fidelity.
+    accelerations : array_like, optional
+        Sampled accelerations. If provided, the implementation may use a quintic
+        polynomial to satisfy endpoint constraints.
+    box_size : float, optional
+        Periodic box size. If set, positions are internally unwrapped for smooth
+        interpolation. Use ``wrap=True`` at evaluation time to return wrapped positions.
+    method : {'spline', 'polynomial', 'pchip'}, default='spline'
+        Interpolation method.
+
+    Notes
+    -----
+    - For scalar ``t``, :meth:`__call__` returns vectors with shape ``(ndim,)``.
+      For array ``t``, it returns arrays of shape ``(M, ndim)``.
+    - When `velocities` is omitted, derivatives may be estimated from positions.
+
+    Examples
+    --------
+    See module-level examples above.
     """
     
     def __init__(self, 
@@ -425,24 +585,37 @@ class Trajectory:
                  extrapolate: bool = False
                  ) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Evaluate trajectory at specified time(s).
-        
+        Evaluate position and velocity at time(s) ``t``.
+
         Parameters
         ----------
         t : float or array_like
-            Time(s) at which to evaluate the trajectory
+            Query time(s).
         wrap : bool, default=False
-            If True, wrap positions to the periodic box [0, box_size).
-            Only applies if box_size was specified.
+            If True and `box_size` is set, wrap positions into ``[0, box_size)``.
         extrapolate : bool, default=False
-            If True, extrapolate beyond the time range of data
-            
+            If True, allow evaluation outside the sampled time range.
+
         Returns
         -------
-        tuple
-            (positions, velocities) where:
-            - positions: ndarray with shape (ndim,) or (N, ndim)
-            - velocities: ndarray with shape (ndim,) or (N, ndim)
+        position : ndarray
+            Position(s).
+        velocity : ndarray
+            Velocity(s).
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from galpos.orbits import Trajectory
+        >>> t = np.array([0., 1., 2.])
+        >>> pos = np.array([[0., 0., 0.],
+        ...                 [1., 0., 0.],
+        ...                 [2., 0., 0.]])
+        >>> vel = np.ones_like(pos)
+        >>> tr = Trajectory(t, pos, vel)
+        >>> p, v = tr([0.5, 1.5])
+        >>> p.shape, v.shape
+        ((2, 3), (2, 3))
         """
         # Convert to array if scalar
         t_array = np.atleast_1d(t)
