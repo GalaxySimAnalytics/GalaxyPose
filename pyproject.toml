@@ -43,7 +43,7 @@ Github = "https://github.com/GalaxySimAnalytics/GalaxyPose"
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tools.setuptools]
+[tool.setuptools]
 package-dir = {"" = "src"}
 
 [tool.setuptools.dynamic]
