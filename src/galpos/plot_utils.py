@@ -97,38 +97,7 @@ def hist_2d(
         (x > x_range[0]) & (x < x_range[1]) & (y > y_range[0]) & (y < y_range[1])
     )
 
-    x = x[ind[0]]"""
-#####################################################################
-
-Copyright (C) 2025 Michele Cappellari  
-E-mail: michele.cappellari_at_physics.ox.ac.uk  
-
-Updated versions of this software are available at:  
-https://pypi.org/project/powerbin/  
-
-If you use this software in published research, please acknowledge it as:  
-“PowerBin method by Cappellari (2025, MNRAS submitted)”  
-https://arxiv.org/abs/2509.06903  
-
-This software is provided “as is”, without any warranty of any kind,  
-express or implied.  
-
-Permission is granted for:  
- - Non-commercial use.  
- - Modification for personal or internal use, provided that this  
-   copyright notice and disclaimer remain intact and unaltered  
-   at the beginning of the file.  
-
-All other rights are reserved. Redistribution of the code, in whole or in part,  
-is strictly prohibited without prior written permission from the author.  
-
-#####################################################################
-
-V1.0.0: PowerBin created — MC, Oxford, 10 September 2025
-
-Vx.x.xx: Additional changes are documented in the global CHANGELOG.rst
-    file of the PowerBin package
-"""
+    x = x[ind[0]]
     y = y[ind[0]]
 
     if weights is not None:
