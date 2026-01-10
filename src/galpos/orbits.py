@@ -205,6 +205,9 @@ class PolynomialInterpolator(PPoly):
         y = np.asarray(y)
         dydx = np.asarray(dydx)
 
+        if d2ydx2 is not None:
+            d2ydx2 = np.asarray(d2ydx2)
+
         self.axis = axis
         
         # Handle multidimensional inputs by moving the interpolation axis to the front
@@ -219,6 +222,7 @@ class PolynomialInterpolator(PPoly):
         self.dydx_values = dydx
         
         # Process second derivatives if provided
+        self.d2ydx2_values: Optional[np.ndarray]
         if is_quintic:
             self.d2ydx2_values = np.asarray(d2ydx2)
             k = 6  # quintic: order = 5, k = order + 1
@@ -237,7 +241,7 @@ class PolynomialInterpolator(PPoly):
             y_reshaped = y.reshape(n_points, n_values)
             dydx_reshaped = dydx.reshape(n_points, n_values)
             
-            if is_quintic:
+            if is_quintic and self.d2ydx2_values is not None:
                 d2ydx2_reshaped = self.d2ydx2_values.reshape(n_points, n_values)
             
             # Process each dimension separately and stack results

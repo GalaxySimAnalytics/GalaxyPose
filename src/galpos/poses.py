@@ -377,7 +377,7 @@ class Orientation:
         
     def __call__(
         self, 
-        t: Union[float, np.ndarray], 
+        t: Union[float, ArrayLike], 
         extrapolate: bool = False
     ) -> np.ndarray:
         """
