@@ -130,7 +130,8 @@ def sfr_virus_radial_evolution(
     r_range: tuple[float, float] = (0,30.), 
     t_range: tuple[float, float] = (0, 13.80272), 
     r_nbins: int =100, 
-    t_nbins: int = 200
+    t_nbins: int = 200,
+    t_max: float = 13.80272
     ) -> np.ndarray:
     """ 
     Compute the star formation rate (SFR) in a 2D histogram of time and radius.
@@ -151,6 +152,8 @@ def sfr_virus_radial_evolution(
         The number of bins in the radius dimension.
     t_nbins: int
         The number of bins in the time dimension.
+    t_max: float
+        The maximum time (age of the universe at z=0).
 
     Returns
     -------
@@ -165,7 +168,7 @@ def sfr_virus_radial_evolution(
     """
 
     im, t_c, r_c = hist_2d(
-        t_range[1]-tform, r, weights=mass, density=False,
+        t_max-tform, r, weights=mass, density=False,
         x_range=t_range,y_range=r_range,gridsize=(t_nbins,r_nbins))
 
     delta_time = ((t_range[1]-t_range[0]) / t_nbins) # in Gyr
