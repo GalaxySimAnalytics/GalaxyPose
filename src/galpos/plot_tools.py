@@ -26,12 +26,16 @@ Notes
 - `hist_2d` and `sfr_virus_radial_evolution` are imported from `.plot_utils`.
 """
 from logging import warning
-from typing import TYPE_CHECKING, Optional, Dict, Any, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Dict, Any, Tuple, Union, TypedDict, List
 from dataclasses import dataclass, field
 
 import numpy as np
-import matplotlib.pyplot as plt 
+from numpy.typing import NDArray
+import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
+from matplotlib.image import AxesImage
 from matplotlib.figure import Figure
+from matplotlib.colorbar import Colorbar
 
 from .plot_utils import sfr_virus_radial_evolution, hist_2d, SCIENCEPLOT
 
@@ -115,6 +119,10 @@ class SFHPlotConfig:
     face_vmin_pct: float = 0.1
     face_vmax_pct: float = 99.95
 
+class PlotHandles(TypedDict):
+    axes: Dict[str, object]
+    images: Dict[str, AxesImage]
+    colorbars: Dict[str, Colorbar]
 
 def _resolve_lookback_edges(options: SFHPlotConfig) -> np.ndarray:
     """Resolve lookback-time bin edges for mass panels.
@@ -167,8 +175,8 @@ def _robust_log_percentile_clim(im: np.ndarray, vmin_pct: float, vmax_pct: float
     return vmin, vmax
 
 def _hist_imshow(
-    ax: Any,
-    snap: Any,
+    ax: Axes,
+    snap: "SimSnap",
     xkey: str,
     ykey: str,
     *,
@@ -180,7 +188,7 @@ def _hist_imshow(
     cmap: str,
     vmin: float,
     vmax: float,
-):
+) -> np.ndarray:
     """Compute 2D hist then draw into `ax` with consistent styling."""
     im, _, _ = hist_2d(
         snap.s[xkey], snap.s[ykey],
@@ -202,10 +210,10 @@ def _hist_imshow(
     return im
 
 def _plot_xy_xz_column(
-    mass_panels: np.ndarray,
+    mass_panels: NDArray[np.object_],
     row0: int,
     col: int,
-    snap: Any,
+    snap: "SimSnap",
     *,
     density: bool,
     x_range: Tuple[float, float],
@@ -214,7 +222,7 @@ def _plot_xy_xz_column(
     cmap: str,
     vmin: float,
     vmax: float,
-):
+) -> None:
     """Plot XY into (row0, col) and XZ into (row0+1, col)."""
     _hist_imshow(
         mass_panels[row0, col], snap, "x", "y",
@@ -228,12 +236,12 @@ def _plot_xy_xz_column(
     )
 
 
-def _select_current_by_lookback(current: Any, lb_min: float, lb_max: float) -> Any:
+def _select_current_by_lookback(current: "SimSnap", lb_min: float, lb_max: float) -> "SimSnap":
     sel = (current.s["age"] > lb_min) & (current.s["age"] < lb_max)
     return current.s[sel]
 
 
-def _select_birth_by_tform(snap: Any, tf_min: float, tf_max: float) -> Any:
+def _select_birth_by_tform(snap: "SimSnap", tf_min: float, tf_max: float) -> "SimSnap":
     sel = (snap.s["tform"] > tf_min) & (snap.s["tform"] < tf_max)
     return snap.s[sel]
 
@@ -247,8 +255,8 @@ def plot_sfr_evolution(
     t_range: Tuple[float, float] = (0.0, 14.),
     options: Optional[SFHPlotConfig] = None,
     return_handles: bool = False,
-    **kwargs,
-    ) -> Union[Figure, Tuple[Figure, Dict[str, Any]]]:
+    **kwargs: Any,
+    ) -> Union[Figure, Tuple[Figure, PlotHandles]]:
     """
     Plot SFR radial evolution + mass panels.
 
@@ -321,16 +329,25 @@ def plot_sfr_evolution(
         figsize = (float(options.frac) * float(options.base_n_col_for_size), float(options.frac) * float(n_row))
 
     # keep SFH/time area width roughly constant across different n_time_panels
-    time_total = float(options.col_ratio_time_total) if options.col_ratio_time_total is not None else float(options.base_n_col_for_size - 2)
-    time_each = time_total / float(n_time_panels) if n_time_panels > 0 else time_total
+    time_total = (float(options.col_ratio_time_total) 
+                if options.col_ratio_time_total is not None 
+                else float(options.base_n_col_for_size - 2) )
+    time_each = (time_total / float(n_time_panels) 
+                if n_time_panels > 0 else time_total)
 
-    width_ratios = [float(options.col_ratio_current)] + [time_each] * n_time_panels + [float(options.col_ratio_colorbar)]
+    width_ratios = ([float(options.col_ratio_current)] 
+                    + [time_each] * n_time_panels 
+                    + [float(options.col_ratio_colorbar)])
 
 
     fig = plt.figure(dpi=int(options.dpi), figsize=figsize)
-    gs = fig.add_gridspec(n_row, n_col, wspace=float(options.wspace), hspace=float(options.hspace), width_ratios=width_ratios)
+    gs = fig.add_gridspec(
+        n_row, n_col, 
+        wspace=float(options.wspace), 
+        hspace=float(options.hspace), 
+        width_ratios=width_ratios)
 
-    handles: Dict[str, Any] = {"axes":{}, "images":{}, "colorbars":{}}
+    handles: PlotHandles = {"axes":{}, "images":{}, "colorbars":{}}
 
     not_use = plt.subplot(gs[:3,0]) 
     not_use.set_axis_off()
@@ -415,7 +432,7 @@ def plot_sfr_evolution(
 
     # --- Define three blocks: (row0, snapshot, density, selector) ---
     # rows: current(0,1), birth_aligned(2,3), birth_centered(4,5)
-    blocks = [
+    blocks: List[Tuple[int, "SimSnap", bool, str]] = [
         (0, current, True, "current"),
         (2, birth_aligned, True, "birth"),
         (4, birth_centered, True, "birth"),
