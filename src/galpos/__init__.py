@@ -55,6 +55,11 @@ from .poses import Orientation
 
 __version__ = "0.1.1"
 
+__author__ = "Shuai Lu (卢帅)"
+__email__ = "lushuai@stu.xmu.edu.cn"
+
+
+__all__ = ["GalaxyPoseTrajectory"]
 
 class GalaxyPoseTrajectory:
     """
