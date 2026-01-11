@@ -56,7 +56,10 @@ def test_orientation_from_rotations_identity_is_constant():
 def test_orientation_sorts_times_and_reorders_samples():
     t_unsorted = np.array([2.0, 0.0, 1.0])
     angles_unsorted = t_unsorted.copy()
-    R_unsorted = Rotation.from_euler("z", angles_unsorted).as_matrix()
+
+    # SciPy newer versions interpret 1D angles as a single "multi-axis" angle vector.
+    # For N samples of a single axis sequence ("z"), provide shape (N, 1).
+    R_unsorted = Rotation.from_euler("z", angles_unsorted[:,None]).as_matrix()
 
     o = Orientation(t_unsorted, rotations=R_unsorted)
 
