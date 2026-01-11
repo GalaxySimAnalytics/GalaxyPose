@@ -39,19 +39,16 @@ In cosmological hydrodynamic simulations, stellar formation properties (formatio
 ## Citation / Acknowledging GalaxyPose
 If you use GalaxyPose in research, please cite the Zenodo record:
 
-- DOI: https://doi.org/10.5281/zenodo.18212506
+- DOI: https://doi.org/10.5281/zenodo.18212505
 
 BibTeX:
 ```bibtex
 @software{Lu2026GalaxyPose,
   author       = {Lu, Shuai},
-  title        = {GalaxySimAnalytics/GalaxyPose: v1.0.0},
-  month        = jan,
-  year         = 2026,
+  title        = {GalaxyPose},
   publisher    = {Zenodo},
-  version      = {v1.0.0},
-  doi          = {10.5281/zenodo.18212506},
-  url          = {https://doi.org/10.5281/zenodo.18212506},
+  doi          = {10.5281/zenodo.18212505},
+  url          = {https://doi.org/10.5281/zenodo.18212505},
 }
 ```
 

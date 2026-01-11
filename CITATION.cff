@@ -5,12 +5,11 @@ type: software
 license: MIT
 repository-code: "https://github.com/GalaxySimAnalytics/GalaxyPose"
 url: "https://github.com/GalaxySimAnalytics/GalaxyPose"
-version: "1.0.0"
-date-released: "2026-01-11"
-doi: "10.5281/zenodo.18212506"
+
+doi: "10.5281/zenodo.18212505"
 identifiers:
   - type: doi
-    value: "10.5281/zenodo.18212506"
+    value: "10.5281/zenodo.18212505"
 authors:
   - family-names: "Lu"
     given-names: "Shuai"
