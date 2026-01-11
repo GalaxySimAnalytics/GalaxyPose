@@ -45,13 +45,17 @@ Add an orientation using angular momentum directions:
 (3, 3)
 """
 
-from typing import Optional, Union, Tuple
+from typing import Optional, Union, Tuple, Dict, TYPE_CHECKING
 
 import numpy as np
 from numpy.typing import ArrayLike
 
 from .orbits import Trajectory
 from .poses import Orientation
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
 
 __version__ = "0.1.1"
 
@@ -100,6 +104,12 @@ class GalaxyPoseTrajectory:
     - Calling an instance returns ``(pos, vel, rot)``, where ``rot`` may be ``None``
       if no orientation was provided.
     - Use :meth:`final_state` to fetch the last sampled state without interpolation.
+
+    Plotting
+    --------
+    Plot helpers require `matplotlib` and are intentionally kept as an optional
+    dependency. If `matplotlib` is missing, calling :meth:`plot` / :meth:`plot3d`
+    raises an ImportError with an installation hint.
 
     Examples
     --------
@@ -270,3 +280,122 @@ class GalaxyPoseTrajectory:
             return f"GPT({n}p, {dim}D, t=[{t[0]:.3g}-{t[-1]:.3g}]{box}, o:{o})"
         except (IndexError, AttributeError):
             return "GPT(empty)"
+        
+    def plot(
+        self,
+        t: Optional[ArrayLike] = None,
+        *,
+        n_samples: int = 256,
+        wrap: bool = False,
+        extrapolate: bool = False,
+        show_orientation: bool = True,
+        show_sampling: bool = False,
+        figsize: Tuple[float, float] = (9.0, 3.0),
+        dpi: int = 150,
+    ) -> Tuple["Figure", Dict[str, "Axes"]]:
+        """Visualize this trajectory in 2D diagnostic panels (1x3).
+
+        Panels
+        ------
+        1) Position components vs time
+        2) Velocity components vs time
+        3) Optional orientation axis components vs time
+
+        Parameters
+        ----------
+        t
+            Times to evaluate. If None, sample uniformly over the stored trajectory time span.
+        n_samples
+            Number of samples used when `t is None`.
+        wrap, extrapolate
+            Passed to ``self(t, wrap=..., extrapolate=...)`` for the evaluated curves.
+        show_orientation
+            If True and orientation exists, plot the normalized orientation axis components.
+        show_sampling
+            If True, over-plot the **init-time sampled data** stored on
+            ``self.trajectory`` (and ``self.orientation`` if present).
+        figsize, dpi
+            Matplotlib figure size and DPI.
+
+        Returns
+        -------
+        fig
+            Matplotlib figure.
+        axes
+            Dict of axes: ``{'pos': ax, 'vel': ax, 'ori': ax}``.
+        """
+        from .plot.pose_trajectory import plot_galaxy_pose_trajectory
+
+        return plot_galaxy_pose_trajectory(
+            self,
+            t=t,
+            n_samples=n_samples,
+            wrap=wrap,
+            extrapolate=extrapolate,
+            show_orientation=show_orientation,
+            show_sampling=show_sampling,
+            figsize=figsize,
+            dpi=dpi,
+        )
+
+    def plot3d(
+        self,
+        t: Optional[ArrayLike] = None,
+        *,
+        n_samples: int = 256,
+        wrap: bool = False,
+        extrapolate: bool = False,
+        show_poses: bool = True,
+        show_sampling: bool = False,
+        pose_stride: int = 16,
+        pose_scale: Optional[float] = None,
+        figsize: Tuple[float, float] = (4.0, 4.0),
+        dpi: int = 150,
+        elev: float = 20.0,
+        azim: float = -60.0,
+    ) -> Tuple["Figure", "Axes"]:
+        """Visualize this trajectory in 3D (orbit + optional pose frames).
+
+        Parameters
+        ----------
+        t
+            Times to evaluate. If None, sample uniformly over the stored trajectory time span.
+        n_samples
+            Number of samples used when `t is None`.
+        wrap, extrapolate
+            Passed to ``self(t, wrap=..., extrapolate=...)`` for the evaluated orbit.
+        show_poses
+            If True and orientation exists, draw pose frames along the orbit.
+        show_sampling
+            If True, scatter the **init-time sampled orbit points** from ``self.trajectory.positions``.
+        pose_stride
+            Draw one pose frame every `pose_stride` evaluated samples.
+        pose_scale
+            Pose axis length in data units. If None, chosen automatically.
+        figsize, dpi, elev, azim
+            Matplotlib figure size, DPI, and 3D view angles.
+
+        Returns
+        -------
+        fig
+            Matplotlib figure.
+        ax
+            3D Matplotlib axes.
+        """
+        from .plot.pose_trajectory import plot_galaxy_pose_trajectory_3d
+
+        return plot_galaxy_pose_trajectory_3d(
+            self,
+            t=t,
+            n_samples=n_samples,
+            wrap=wrap,
+            extrapolate=extrapolate,
+            show_poses=show_poses,
+            show_sampling=show_sampling,
+            pose_stride=pose_stride,
+            pose_scale=pose_scale,
+            figsize=figsize,
+            dpi=dpi,
+            elev=elev,
+            azim=azim,
+        )
