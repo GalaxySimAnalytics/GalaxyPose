@@ -106,3 +106,12 @@ ignore_missing_imports = true
 
 disallow_incomplete_defs = true
 check_untyped_defs = true
+
+
+# ======================================================================================
+# pytest configuration
+# ======================================================================================
+[tool.pytest.ini_options]
+markers = [
+  "pynbody: tests that require pynbody + matplotlib and produce plots",
+]
