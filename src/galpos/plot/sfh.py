@@ -246,8 +246,8 @@ def _select_birth_by_tform(snap: "SimSnap", tf_min: float, tf_max: float) -> "Si
     return snap.s[sel]
 
 def plot_sfr_evolution(
-    current: "SimSnap", 
-    birth_centered: "SimSnap", 
+    current: "SimSnap",
+    birth_centered: "SimSnap",
     birth_aligned: "SimSnap",
     sfh_color: str = "inferno",
     mass_color: str = "jet",
@@ -296,11 +296,11 @@ def plot_sfr_evolution(
         r95 = float(options.r_max)
         if r95 <= 0:
             raise ValueError("options.r_max must be > 0.")
-        
+
 
     region_r = float((r95 // options.r_round_to + 1) * options.r_round_to)
     r_range = (0.0, region_r)
-    
+
 
     # lookback-time range for display/bins
     t_range = (float(options.t_range[0]), float(options.t_range[1]))
@@ -321,7 +321,7 @@ def plot_sfr_evolution(
     n_row = 9
     n_time_panels = int(lb_edges.size - 1)
     n_col = 1 + n_time_panels + 1  # [Current] + [time panels] + [colorbar]
-    
+
     if options.fixed_figsize is not None:
         figsize = (float(options.fixed_figsize[0]), float(options.fixed_figsize[1]))
     else:
@@ -329,27 +329,27 @@ def plot_sfr_evolution(
         figsize = (float(options.frac) * float(options.base_n_col_for_size), float(options.frac) * float(n_row))
 
     # keep SFH/time area width roughly constant across different n_time_panels
-    time_total = (float(options.col_ratio_time_total) 
-                if options.col_ratio_time_total is not None 
+    time_total = (float(options.col_ratio_time_total)
+                if options.col_ratio_time_total is not None
                 else float(options.base_n_col_for_size - 2) )
-    time_each = (time_total / float(n_time_panels) 
+    time_each = (time_total / float(n_time_panels)
                 if n_time_panels > 0 else time_total)
 
-    width_ratios = ([float(options.col_ratio_current)] 
-                    + [time_each] * n_time_panels 
+    width_ratios = ([float(options.col_ratio_current)]
+                    + [time_each] * n_time_panels
                     + [float(options.col_ratio_colorbar)])
 
 
     fig = plt.figure(dpi=int(options.dpi), figsize=figsize)
     gs = fig.add_gridspec(
-        n_row, n_col, 
-        wspace=float(options.wspace), 
-        hspace=float(options.hspace), 
+        n_row, n_col,
+        wspace=float(options.wspace),
+        hspace=float(options.hspace),
         width_ratios=width_ratios)
 
     handles: PlotHandles = {"axes":{}, "images":{}, "colorbars":{}}
 
-    not_use = plt.subplot(gs[:3,0]) 
+    not_use = plt.subplot(gs[:3,0])
     not_use.set_axis_off()
 
     sfh_ax = plt.subplot(gs[:3,1:-1])
@@ -357,7 +357,7 @@ def plot_sfr_evolution(
 
     # SFH map expects tform + t_max=age_max, and uses lookback t_range for display
     im = sfr_virus_radial_evolution(
-        birth_aligned['tform'], birth_aligned['mass'], birth_aligned['r'], 
+        birth_aligned['tform'], birth_aligned['mass'], birth_aligned['r'],
         r_range=r_range, t_range=t_range, r_nbins=options.r_nbins, t_nbins=options.t_nbins, t_max=age_max
     )
 
@@ -426,7 +426,7 @@ def plot_sfr_evolution(
     # current XZ col0
     _hist_imshow(
         mass_panels[1, 0], current, "x", "z",
-        density=False, x_range=x_range, y_range=y_range,
+        density=True, x_range=x_range, y_range=y_range,
         nbins=nbins, cmap=options.mass_color, vmin=face_vmin, vmax=face_vmax
     )
 
@@ -483,7 +483,7 @@ def plot_sfr_evolution(
     mass_panels_face_color = mass_im.cmap(mass_im.norm(mass_im.get_clim()[0]))
     for i in mass_panels.flatten():
         i.set_facecolor(mass_panels_face_color)
-        
+
     for i in range(mass_panels.shape[0]):
         for j in range(mass_panels.shape[1]):
             if (i!=mass_panels.shape[0]-1) or (j%2 == 1):
@@ -537,7 +537,7 @@ def plot_sfr_evolution(
         (mass_bar_bar_pos.x0, mass_bar_bar_pos.y0, mass_bar_bar_pos.width*0.1, mass_bar_bar_pos.height)
         )
     mass_bar.tick_params(direction='in', right=True)
-    
+
     if return_handles:
         return fig, handles
     return fig
