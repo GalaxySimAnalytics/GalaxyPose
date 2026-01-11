@@ -1,4 +1,4 @@
-# Byte-compiled 
+# Byte-compiled
 **/__pycache__
 
 *.egg-info/
@@ -12,3 +12,7 @@ build/
 
 # ruff
 .ruff_cache
+
+# test
+.pytest_cache
+testdata/_artifacts
