@@ -1,5 +1,6 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18212505.svg)](https://doi.org/10.5281/zenodo.18212505)
+[![codecov](https://codecov.io/gh/GalaxySimAnalytics/GalaxyPose/branch/main/graph/badge.svg)](https://codecov.io/gh/GalaxySimAnalytics/GalaxyPose)
 # GalaxyPose
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18212506.svg)](https://doi.org/10.5281/zenodo.18212506)
 
 GalaxyPose 是一个用于宇宙学模拟数据分析的 Python 工具包，可将离散快照中的**星系轨迹（位置/速度）**与**姿态（朝向）**构建为连续模型，从而在任意时刻评估星系状态。
 

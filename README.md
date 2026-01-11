@@ -1,5 +1,6 @@
-# GalaxyPose
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18212505.svg)](https://doi.org/10.5281/zenodo.18212505)
+[![codecov](https://codecov.io/gh/GalaxySimAnalytics/GalaxyPose/branch/main/graph/badge.svg)](https://codecov.io/gh/GalaxySimAnalytics/GalaxyPose)
+# GalaxyPose
 
 GalaxyPose is a Python toolkit for modeling galaxy **trajectories (position/velocity)** and **orientations** as continuous functions of time from discrete cosmological simulation snapshots.
 
