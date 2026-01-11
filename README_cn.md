@@ -1,47 +1,60 @@
 # GalaxyPose
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18212506.svg)](https://doi.org/10.5281/zenodo.18212506)
 
-GalaxyPose 是一个用于宇宙学模拟数据分析的 Python 工具包。它能够将离散快照中的**星系轨迹（位置/速度）**与**姿态（朝向）**构建为连续模型，从而在任意时刻评估星系状态。
-
-
-# 功能概述
-宇宙学模拟通常以快照形式输出星系的位置、速度、角动量等物理量。由于快照之间存在时间间隔，许多分析需要在两次输出之间获得连续的星系运动与朝向信息。GalaxyPose 提供基于插值的模型，用于弥合快照间隔，并在采样时间范围内（也可选择外推）查询任意时刻的星系状态。
-
+GalaxyPose 是一个用于宇宙学模拟数据分析的 Python 工具包，可将离散快照中的**星系轨迹（位置/速度）**与**姿态（朝向）**构建为连续模型，从而在任意时刻评估星系状态。
 
 ## 主要特性
-
-- **轨迹插值**，支持周期盒（unwrap/wrap）处理。
-- **姿态插值**
+- 轨迹插值，支持周期盒（unwrap/wrap）处理。
+- 姿态插值：
   - 基于旋转矩阵（四元数平滑插值），或
   - 基于角动量方向（适用于只关心盘面法向的场景）。
-- **恒星诞生信息对齐**：将恒星形成时的坐标/速度变换到宿主星系参考系（依赖 `pynbody`）。
+- 可选：`galpos.decorate`（依赖 `pynbody`）用于恒星诞生坐标对齐。
+- 可选：面向 **IllustrisTNG（TNG 模拟）** 数据目录/目录结构的辅助功能（依赖 `AnastrisTNG`，见 `galpos.decorate`）。
 
-# 安装方法
 
+## 安装
+
+从源码安装：
 ```bash
 git clone https://github.com/GalaxySimAnalytics/GalaxyPose.git
 cd GalaxyPose
 pip install -e .
 ```
 
-## 可选依赖
-
-### 绘图
-
-绘图相关工具（例如 `GalaxyPoseTrajectory.plot()` / `plot3d()`）依赖 `matplotlib`。
-
-- `pip install matplotlib`
-- 或 `pip install -e .[plot]`
-
-### decorate 集成
-
-`galpos.decorate` 下的诞生信息对齐工具是可选功能。
-
-- Pynbody: `pip install pynbody` 或 `pip install -e .[decorate]`
-- AnastrisTNG: `pip install -e .[decorate-tng]`
-
+可选依赖：
+```bash
+pip install -e ".[plot]"        # 绘图功能（matplotlib）
+pip install -e ".[decorate]"    # pynbody 集成
+pip install -e ".[decorate-tng]" # IllustrisTNG 辅助功能（AnastrisTNG）
+```
 
 ## 应用场景
 
 在宇宙学流体模拟中，恒星形成时间、诞生位置与诞生速度通常记录在模拟盒坐标系下。若要计算“相对于宿主星系”的形成环境，就需要在恒星形成时刻得到宿主星系的位置、速度以及（可选的）姿态。GalaxyPose 用于构建这些连续模型，并可将粒子的诞生信息对齐到宿主星系参考系中。
 
 [![sfr_evolution](./examples/sfr_evolution.png)](./examples/sfr_evolution.png)
+
+## 引用 / 致谢（Acknowledging the code）
+如果你在论文或报告中使用了 GalaxyPose，请引用 Zenodo 记录：
+
+- DOI: https://doi.org/10.5281/zenodo.18212506
+
+
+BibTeX:
+```bibtex
+@software{Lu2026GalaxyPose,
+  author       = {Lu, Shuai},
+  title        = {GalaxySimAnalytics/GalaxyPose: v1.0.0},
+  month        = jan,
+  year         = 2026,
+  publisher    = {Zenodo},
+  version      = {v1.0.0},
+  doi          = {10.5281/zenodo.18212506},
+  url          = {https://doi.org/10.5281/zenodo.18212506},
+}
+```
+
+也可以直接使用仓库中的 [`CITATION.cff`](./CITATION.cff) 进行引用信息导出。
+
+## 许可证
+MIT License，见 [`LICENSE`](./LICENSE)。

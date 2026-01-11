@@ -1,46 +1,62 @@
 # GalaxyPose
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18212506.svg)](https://doi.org/10.5281/zenodo.18212506)
 
-GalaxyPose is a Python toolkit for analyzing cosmological simulation data. It provides continuous models for **galaxy trajectories (position/velocity)** and **orientations** from discrete simulation snapshots, enabling galaxy states to be evaluated at arbitrary times.
+GalaxyPose is a Python toolkit for modeling galaxy **trajectories (position/velocity)** and **orientations** as continuous functions of time from discrete cosmological simulation snapshots.
 
 [中文版本](./README_cn.md)
 
-# Overview
-Cosmological simulations output snapshots containing galaxy properties such as position, velocity, and angular momentum. Because snapshots are separated by finite time intervals, many analyses require a continuous description of a galaxy’s motion and orientation between snapshots. GalaxyPose offers interpolation-based models to bridge these gaps and query galaxy states at any time within (and optionally beyond) the sampled range.
+## Features
+- Trajectory interpolation with periodic-box support (unwrap/wrap).
+- Orientation interpolation
+  - from rotation matrices (smooth quaternion-based interpolation), or
+  - from angular-momentum directions (disk-axis use cases).
+- Optional birth-frame alignment utilities via `pynbody` (`galpos.decorate`).
+- Optional helpers for **IllustrisTNG (TNG simulation)** catalogs via `AnastrisTNG` (`galpos.decorate`).
 
-## Key Features
+## Installation
 
-- **Trajectory interpolation** with periodic-box support (unwrap/wrap handling).
-- **Orientation interpolation**
-  - from rotation matrices (quaternion-based smooth interpolation), or
-  - from angular momentum directions (useful when only disk axis is needed).
-- **Birth-frame alignment utilities** to express stellar birth positions/velocities in the host-galaxy frame (via `pynbody`).
-
-# Installation
-
+From source:
 ```bash
 git clone https://github.com/GalaxySimAnalytics/GalaxyPose.git
 cd GalaxyPose
 pip install -e .
 ```
 
-## Optional dependencies
-
-### Plotting
-
-Plotting helpers (e.g. `GalaxyPoseTrajectory.plot()` / `plot3d()`) require `matplotlib`.
-
-- `pip install matplotlib`
-- or `pip install -e .[plot]`
-
-### Decorate integrations
-
-Birth-frame alignment helpers under `galpos.decorate` are optional.
-
-- Pynbody integration: `pip install pynbody` or `pip install -e .[decorate]`
-- AnastrisTNG integration: `pip install -e .[decorate-tng]`
+Optional extras:
+```bash
+pip install -e ".[plot]"      # matplotlib plotting helpers
+pip install -e ".[decorate]"  # pynbody integration
+pip install -e ".[decorate-tng]" # IllustrisTNG helpers via AnastrisTNG
+```
 
 ## Use Cases
 
 In cosmological hydrodynamic simulations, stellar formation properties (formation time, birth position, birth velocity) are often recorded in the simulation box frame. To compute quantities relative to a host galaxy at formation time, you need the host galaxy’s position, velocity, and (optionally) orientation at that same moment. GalaxyPose supports building these continuous models and aligning particle birth properties to the host-galaxy frame.
 
 [![sfr_evolution](./examples/sfr_evolution.png)](./examples/sfr_evolution.png)
+
+
+## Citation / Acknowledging GalaxyPose
+If you use GalaxyPose in research, please cite the Zenodo record:
+
+- DOI: https://doi.org/10.5281/zenodo.18212506
+
+BibTeX:
+```bibtex
+@software{Lu2026GalaxyPose,
+  author       = {Lu, Shuai},
+  title        = {GalaxySimAnalytics/GalaxyPose: v1.0.0},
+  month        = jan,
+  year         = 2026,
+  publisher    = {Zenodo},
+  version      = {v1.0.0},
+  doi          = {10.5281/zenodo.18212506},
+  url          = {https://doi.org/10.5281/zenodo.18212506},
+}
+```
+
+
+You can also use the metadata in [`CITATION.cff`](./CITATION.cff).
+
+## License
+MIT License. See [`LICENSE`](./LICENSE).
