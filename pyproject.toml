@@ -57,6 +57,19 @@ where = ["src"]
 # ======================================================================================
 
 [project.optional-dependencies]
+plot = [
+    "matplotlib",
+]
+
+decorate = [
+    "pynbody",
+]
+
+decorate-tng = [
+    "pynbody",
+    "AnastrisTNG @ git+https://github.com/wx-ys/AnastrisTNG",
+]
+
 tests = [
     "pytest",
     "pytest-cov"
