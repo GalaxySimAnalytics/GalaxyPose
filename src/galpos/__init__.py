@@ -57,7 +57,7 @@ if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.figure import Figure
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 __author__ = "Shuai Lu (卢帅)"
 __email__ = "lushuai@stu.xmu.edu.cn"
