@@ -1,0 +1,7 @@
+recursive-include tests *.py
+recursive-include tools *.py
+include LICENSE
+include README.md
+include README_cn.md
+include CITATION.cff
+include pyproject.toml

@@ -25,7 +25,7 @@ pip install -e .
 ```bash
 pip install -e ".[plot]"        # 绘图功能（matplotlib）
 pip install -e ".[decorate]"    # pynbody 集成
-pip install -e ".[decorate-tng]" # IllustrisTNG 辅助功能（AnastrisTNG）
+pip install "AnastrisTNG @ git+https://github.com/wx-ys/AnastrisTNG" # IllustrisTNG 辅助功能（AnastrisTNG）
 ```
 
 ## 应用场景

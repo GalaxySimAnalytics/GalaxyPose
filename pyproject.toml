@@ -67,7 +67,9 @@ decorate = [
 
 decorate-tng = [
     "pynbody",
-    "AnastrisTNG @ git+https://github.com/wx-ys/AnastrisTNG",
+    # NOTE: PyPI/TestPyPI disallow direct URL/VCS dependencies in published metadata.
+    # Install AnastrisTNG separately, e.g.:
+    # pip install "AnastrisTNG @ git+https://github.com/wx-ys/AnastrisTNG"
 ]
 
 tests = [
@@ -115,3 +117,13 @@ check_untyped_defs = true
 markers = [
   "pynbody: tests that require pynbody + matplotlib and produce plots",
 ]
+
+
+# ======================================================================================
+# uv publish configuration
+# ======================================================================================
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true

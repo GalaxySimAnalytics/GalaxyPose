@@ -26,7 +26,7 @@ Optional extras:
 ```bash
 pip install -e ".[plot]"      # matplotlib plotting helpers
 pip install -e ".[decorate]"  # pynbody integration
-pip install -e ".[decorate-tng]" # IllustrisTNG helpers via AnastrisTNG
+pip install "AnastrisTNG @ git+https://github.com/wx-ys/AnastrisTNG" # IllustrisTNG helpers via AnastrisTNG
 ```
 
 ## Use Cases
