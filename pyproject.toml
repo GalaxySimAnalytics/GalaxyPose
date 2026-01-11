@@ -8,11 +8,11 @@ description = "A package for modeling galaxy poses and trajectories."
 authors = [
     {name = "Shuai LU", email = "lushuai@stu.xmu.edu.cn"}
 ]
-# FIX: PEP 621 requires a table for `license`
-license = {text = "MIT"}
+
+license = "MIT"
 license-files = ["LICENSE"]
 
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
     "numpy",
     "scipy",
@@ -90,7 +90,7 @@ dev = [
 # ======================================================================================
 [tool.ruff]
 line-length = 120
-target-version = "py38"
+target-version = "py39"
 
 [tool.ruff.lint]
 select = ["E", "F", "B"]
