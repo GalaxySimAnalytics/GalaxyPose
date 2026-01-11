@@ -57,7 +57,7 @@ if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.figure import Figure
 
-__version__ = "0.1.1"
+__version__ = "1.0.0"
 
 __author__ = "Shuai Lu (卢帅)"
 __email__ = "lushuai@stu.xmu.edu.cn"
@@ -129,12 +129,12 @@ class GalaxyPoseTrajectory:
 
     def __init__(self,
                  times: ArrayLike,
-                 positions: ArrayLike, 
-                 velocities: Optional[ArrayLike] = None, 
+                 positions: ArrayLike,
+                 velocities: Optional[ArrayLike] = None,
                  rotations: Optional[np.ndarray] = None,
                  angular_momentum: Optional[np.ndarray] = None,
-                 accelerations: Optional[ArrayLike] = None, 
-                 box_size: Optional[float] = None, 
+                 accelerations: Optional[ArrayLike] = None,
+                 box_size: Optional[float] = None,
                  trajectory_method: str = 'spline',
                  orientation_times: Optional[ArrayLike] = None):
         """
@@ -164,7 +164,7 @@ class GalaxyPoseTrajectory:
             Time grid for orientation samples. Defaults to `times`.
         """
         self.trajectory: Trajectory = Trajectory(
-            times, positions, velocities, 
+            times, positions, velocities,
             accelerations, box_size, trajectory_method)
 
         self.orientation: Optional[Orientation] = None
@@ -176,9 +176,9 @@ class GalaxyPoseTrajectory:
                 orientation_times, rotations, angular_momentum
                 )
 
-    def __call__(self, 
-                 t: Union[float, ArrayLike], 
-                 wrap: bool = False, 
+    def __call__(self,
+                 t: Union[float, ArrayLike],
+                 wrap: bool = False,
                  extrapolate: bool = False
                  ) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
         """
@@ -219,13 +219,13 @@ class GalaxyPoseTrajectory:
         ((2, 3), (2, 3), None)
         """
         pos, vel = self.trajectory(t, wrap, extrapolate)
-        
+
         if self.orientation is not None:
             rot = self.orientation(t, extrapolate)
             return pos, vel, rot
         else:
             return pos, vel, None
-        
+
     def final_state(self) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
         """
         Return the last *sampled* state (no interpolation).
@@ -244,8 +244,8 @@ class GalaxyPoseTrajectory:
         rot = self.orientation.rotations[-1] if self.orientation is not None else None
         return pos, vel, rot
 
-    def get_acceleration(self, 
-                         t: Union[float, ArrayLike], 
+    def get_acceleration(self,
+                         t: Union[float, ArrayLike],
                          extrapolate: bool = False
                          ) -> np.ndarray:
         """
@@ -264,7 +264,7 @@ class GalaxyPoseTrajectory:
             Acceleration with shape ``(ndim,)`` or ``(M, ndim)``.
         """
         return self.trajectory.get_acceleration(t, extrapolate)
-    
+
     def __repr__(self) -> str:
         """Return a string representation of the GalaxyPoseTrajectory object."""
         try:
@@ -276,11 +276,11 @@ class GalaxyPoseTrajectory:
             else:
                 box = ""
             o = "+" if self.orientation is not None else "-"
-            
+
             return f"GPT({n}p, {dim}D, t=[{t[0]:.3g}-{t[-1]:.3g}]{box}, o:{o})"
         except (IndexError, AttributeError):
             return "GPT(empty)"
-        
+
     def plot(
         self,
         t: Optional[ArrayLike] = None,
