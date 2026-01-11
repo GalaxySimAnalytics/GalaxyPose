@@ -60,6 +60,6 @@ jobs:
       - name: Upload plot artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: pynbody-test-plots
+          name: pynbody-decorate-plots
           path: testdata/_artifacts/*.png
           if-no-files-found: error
