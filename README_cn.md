@@ -23,6 +23,22 @@ cd GalaxyPose
 pip install -e .
 ```
 
+## 可选依赖
+
+### 绘图
+
+绘图相关工具（例如 `GalaxyPoseTrajectory.plot()` / `plot3d()`）依赖 `matplotlib`。
+
+- `pip install matplotlib`
+- 或 `pip install -e .[plot]`
+
+### decorate 集成
+
+`galpos.decorate` 下的诞生信息对齐工具是可选功能。
+
+- Pynbody: `pip install pynbody` 或 `pip install -e .[decorate]`
+- AnastrisTNG: `pip install -e .[decorate-tng]`
+
 
 ## 应用场景
 
