@@ -173,8 +173,11 @@ def calculate_face_on_matrix(
         3x3 rotation matrix
     """
     # Normalize input vector
-    direction = np.asarray(direction_vector)
-    direction = direction / np.linalg.norm(direction)
+    direction = np.asarray(direction_vector, dtype=float)
+    norm = float(np.linalg.norm(direction))
+    if not np.isfinite(norm) or norm < 1e-12:
+        raise ValueError("direction_vector must be a non-zero finite 3-vector")
+    direction = direction / norm
     
     up = np.asarray(up_vector)
     
@@ -298,6 +301,9 @@ class Orientation:
         times = np.asarray(times)
         
         # Sort by time if needed
+        if times.ndim != 1:
+            raise ValueError("times must be a 1D array")
+
         if not np.all(np.diff(times) > 0):
             idx = np.argsort(times)
             times = times[idx]
@@ -306,7 +312,8 @@ class Orientation:
             if angular_momentum is not None:
                 angular_momentum = np.asarray(angular_momentum)[idx]
 
-        assert any(np.diff(times) > 0), "Times must be strictly increasing"
+        if not np.all(np.diff(times) > 0):
+            raise ValueError("times must be strictly increasing (duplicate times are not allowed)")
         
         self.times = times
         

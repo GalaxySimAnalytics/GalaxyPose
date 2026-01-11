@@ -93,6 +93,7 @@ True
 """
 
 from typing import Optional, Tuple, Union
+import warnings
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -454,6 +455,15 @@ class Trajectory:
       For array ``t``, it returns arrays of shape ``(M, ndim)``.
     - When `velocities` is omitted, derivatives may be estimated from positions.
 
+    Auto method switching
+    ---------------------
+    The constructor may override the requested `method` to ensure a valid interpolator:
+
+    - If `accelerations` is provided, the effective method becomes `'polynomial'`.
+    - If both `velocities` and `accelerations` are omitted, the effective method becomes `'pchip'`.
+
+    The effective method is stored in ``self.method``.
+
     Examples
     --------
     See module-level examples above.
@@ -487,11 +497,18 @@ class Trajectory:
             - 'polynomial': PolynomialInterpolator (cubic or quintic)
             - 'pchip': PchipInterpolator (can estimate velocities)
         """
+        allowed_methods = {"spline", "polynomial", "pchip"}
+        if method not in allowed_methods:
+            raise ValueError(f"Unknown method {method!r}. Expected one of {sorted(allowed_methods)}")
+
         # Ensure inputs are numpy arrays
         times = np.asarray(times)
         positions = np.asarray(positions)
         
         # Sort by time if needed
+        if times.ndim != 1:
+            raise ValueError("times must be a 1D array")
+
         if not np.all(np.diff(times) > 0):
             idx = np.argsort(times)
             times = times[idx]
@@ -501,11 +518,13 @@ class Trajectory:
             if accelerations is not None:
                 accelerations = np.asarray(accelerations)[idx]
 
-        assert any(np.diff(times) > 0), "Times must be strictly increasing"
+        if not np.all(np.diff(times) > 0):
+            raise ValueError("times must be strictly increasing (duplicate times are not allowed)")
         
         self.times: np.ndarray = times
         self.box_size: Optional[float] = box_size
-        self.method: str = method
+        requested_method: str = method
+        effective_method: str = method
         
         self.positions: np.ndarray = positions
         
@@ -535,18 +554,26 @@ class Trajectory:
             
         # When accelerations are provided, use quintic polynomial interpolation
         if accelerations is not None:
-            if method != 'polynomial':
-                print("Warning: accelerations provided, "
-                      "switching to 'polynomial' method")
-                method = 'polynomial'
+            if effective_method != 'polynomial':
+                warnings.warn(
+                    "accelerations provided; switching method to 'polynomial'"
+                    f" (requested {requested_method!r})",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
+                effective_method = 'polynomial'
 
             self.accelerations = np.asarray(accelerations)
             if velocities is None:
                 # Estimate velocities if not provided
                 self.velocities = np.zeros_like(pos)
                 dt = np.diff(times)
-                dp = np.diff(pos, axis=0)
-                self.velocities[:-1] = dp / dt[:, np.newaxis]
+                if pos.ndim == 1:
+                    dp = np.diff(pos)
+                    self.velocities[:-1] = dp / dt
+                else:
+                    dp = np.diff(pos, axis=0)
+                    self.velocities[:-1] = dp / dt[:, np.newaxis]
                 self.velocities[-1] = self.velocities[-2]  # Copy last velocity
             else:
                 self.velocities = np.asarray(velocities)
@@ -559,10 +586,14 @@ class Trajectory:
          # When velocities and accelerations are not provided, we need to estimate them
         elif velocities is None:
             # Use PchipInterpolator which doesn't require explicit derivatives
-            if method != 'pchip':
-                print("Warning: velocities and accelerations not provided, "
-                      f"switching to 'pchip' method instead of '{method}'")
-                method = 'pchip'
+            if effective_method != 'pchip':
+                warnings.warn(
+                    "velocities and accelerations not provided; switching method to 'pchip' "
+                    f"(requested {requested_method!r})",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
+                effective_method = 'pchip'
 
             self.spline = PchipInterpolator(times, pos)
             # Calculate velocities from the interpolator derivatives
@@ -573,15 +604,19 @@ class Trajectory:
             # We have explicit velocities
             self.velocities = np.asarray(velocities)
             
-            if method == 'spline':
+            if effective_method == 'spline':
                 self.spline = CubicHermiteSpline(times, pos, self.velocities)
-            elif method == 'polynomial':
+            elif effective_method == 'polynomial':
                 self.spline = PolynomialInterpolator(times, pos, self.velocities)
-            elif method == 'pchip':
+            elif effective_method == 'pchip':
                 self.spline = PchipInterpolator(times, pos)
                 # Override provided velocities with those from the PCHIP interpolator
                 self.velocities = self.spline.derivative()(times)
+            else:
+                raise ValueError(f"Unknown method {effective_method!r}")
             self.accelerations = self.spline.derivative(2)(times)
+
+        self.method = effective_method
 
     def __call__(self, 
                  t: Union[float, ArrayLike], 
