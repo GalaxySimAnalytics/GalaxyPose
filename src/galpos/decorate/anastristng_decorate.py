@@ -16,21 +16,24 @@ Examples
 Typical usage pattern (requires AnastrisTNG + pynbody):
 
 >>> from AnastrisTNG.TNGsimulation import Snapshot
->>> from galpos.anastristng_decorate import make_star_birth
+>>> from galpos.decorate import make_tng_star_birth
 >>> snap = Snapshot(...)
->>> sb = make_star_birth(snap, ID=12345, issubhalo=True)
+>>> sb = make_tng_star_birth(snap, ID=12345, issubhalo=True)
 >>> sb = sb.align_with_galaxy()
 """
+from __future__ import annotations
+
 from typing import Any, Optional, Union
 
 import numpy as np
-from AnastrisTNG.TNGsimulation import Snapshot
-
 from pynbody.array import SimArray
 
-from .import GalaxyPoseTrajectory
+from galpos import GalaxyPoseTrajectory
 from .pynbody_decorate import make_star_birth as _make_star_birth
 from .pynbody_decorate import StarBirth, Unit
+
+
+__all__ = ["make_star_birth"]
 
 
 
@@ -53,7 +56,6 @@ def units_transform(array: SimArray, new_units: Union[str, Unit], **convertion_c
         A new array in `new_units` (input is not modified).
     """
     ratio = array.units.ratio(new_units, **convertion_context)
-    array.units = Unit(new_units)
     if np.isscalar(ratio):
         # Simple scalar multiplication for all shapes
         new_arr = array.view(np.ndarray) * ratio
@@ -65,7 +67,7 @@ def units_transform(array: SimArray, new_units: Union[str, Unit], **convertion_c
     new_arr = SimArray(new_arr, new_units)
     return new_arr
 
-def make_star_birth(snapshot: Snapshot, 
+def make_star_birth(snapshot: Any, 
                     ID: int, 
                     issubhalo: bool = True, 
                     host_t : Optional[SimArray] = None,

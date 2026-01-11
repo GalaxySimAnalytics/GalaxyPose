@@ -1,22 +1,23 @@
-""" 
-This module aligns stellar birth positions with galaxy trajectories and orientations.
-It provides functionality to decorate particle information using Pynbody.
+"""Pynbody integration (optional).
 
-The module contains utilities for creating and manipulating star birth data
-in relation to galaxy pose trajectories, allowing for proper alignment
-of stellar positions and velocities with their host galaxies.
+This module provides `StarBirth` and `make_star_birth`, which align stellar birth
+positions/velocities into a host-galaxy frame described by a
+`galpos.GalaxyPoseTrajectory`.
+
+It requires `pynbody` and is imported lazily via `galpos.decorate`.
 """
+
+from __future__ import annotations
+
 import warnings
-from typing import Union, Any, Optional, Tuple
-from typing_extensions import Self
+from typing import Any, Optional, Tuple, Union
 
 import numpy as np
-
 from pynbody.snapshot import SimSnap
 from pynbody.array import SimArray
 from pynbody.units import Unit
 
-from . import GalaxyPoseTrajectory
+from galpos import GalaxyPoseTrajectory
 
 
 
@@ -43,7 +44,8 @@ def units_transform(sim: SimSnap, array_name: str, new_units: Union[str, Unit]) 
     """
     array = sim[array_name]
     ratio = array.units.ratio(new_units, **(sim.conversion_context()))
-    array.units = Unit(new_units)
+    # `pynbody` accepts unit strings here; avoids relying on Unit(...) constructor typing.
+    array.units = new_units
     if np.isscalar(ratio):
         # Simple scalar multiplication for all shapes
         array[:] = array.view(np.ndarray) * ratio
@@ -129,7 +131,7 @@ class StarBirth(SimSnap):
         status_str = f" [{','.join(status)}]" if status else ""
         return f"{repr(self.galaxy_orbit)}{status_str}"
 
-    def align_with_galaxy(self, orientation_align: bool = True) -> Self:
+    def align_with_galaxy(self, orientation_align: bool = True) -> "StarBirth":
         """
         Center (and optionally rotate) star birth coordinates into the host frame.
 
@@ -154,10 +156,12 @@ class StarBirth(SimSnap):
         >>> sb = sb.align_with_galaxy(orientation_align=True)
         """
 
-        if (self.__already_centered and 
-            (self.__already_oriented or not orientation_align)):
-            print("Already centered and oriented" 
-                  if self.__already_oriented else "Already centered")
+        if self.__already_centered and (self.__already_oriented or not orientation_align):
+            warnings.warn(
+                "StarBirth is already aligned; returning self",
+                RuntimeWarning,
+                stacklevel=2,
+            )
             return self
 
         if not self.__already_centered:
@@ -190,7 +194,11 @@ class StarBirth(SimSnap):
                 self.__already_oriented = True
                 self._filename = self._get_filename_with_status()
             else:
-                print("Galaxy orientation not available")
+                warnings.warn(
+                    "Galaxy orientation not available; only centering was applied",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
         return self
     
     def final_state(self) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
@@ -257,8 +265,12 @@ def make_star_birth(galaxy_orbit: GalaxyPoseTrajectory,
         birth_velocity = birth_velocity[sel]
         mass = mass[sel]
         scale_factor = scale_factor[sel]
-        np_remove = len(sel) - len(birth_pos)
-        print(f"Removed {np_remove} particles due to invalid scale factors.")
+        np_remove = int(np.size(sel) - len(birth_pos))
+        warnings.warn(
+            f"Removed {np_remove} particles due to invalid scale factors.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
         
     star = StarBirth(
         pos=SimArray(birth_pos, birth_pos_units),
