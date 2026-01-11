@@ -13,8 +13,13 @@ Install hints
 - `pip install pynbody`
 - `pip install -e .[decorate]`
 """
+from typing import TYPE_CHECKING
 
 from .util import PYNBODY_AVAILABLE, ANASTRISTNG_AVAILABLE
+
+if TYPE_CHECKING:
+    from .pynbody_decorate import StarBirth, make_star_birth
+    from .anastristng_decorate import make_star_birth as make_tng_star_birth
 
 
 _PYNBODY_HINT = "galpos.decorate requires 'pynbody'. Install with: pip install pynbody"

@@ -10,7 +10,11 @@ Install plotting support with:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .pose_trajectory import plot_galaxy_pose_trajectory, plot_galaxy_pose_trajectory_3d
+    from .sfh import plot_sfr_evolution, SFHPlotConfig
 
 
 _MATPLOTLIB_INSTALL_HINT = "Plotting requires 'matplotlib'. Install with: pip install matplotlib"
