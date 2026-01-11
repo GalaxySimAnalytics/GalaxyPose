@@ -5,3 +5,4 @@ include README.md
 include README_cn.md
 include CITATION.cff
 include pyproject.toml
+include examples *.png

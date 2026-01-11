@@ -1,9 +1,9 @@
 # GalaxyPose
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18212506.svg)](https://doi.org/10.5281/zenodo.18212506)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18212505.svg)](https://doi.org/10.5281/zenodo.18212505)
 
 GalaxyPose is a Python toolkit for modeling galaxy **trajectories (position/velocity)** and **orientations** as continuous functions of time from discrete cosmological simulation snapshots.
 
-[中文版本](./README_cn.md)
+[中文版本](https://github.com/GalaxySimAnalytics/GalaxyPose/blob/main/README_cn.md)
 
 ## Features
 - Trajectory interpolation with periodic-box support (unwrap/wrap).
@@ -33,7 +33,7 @@ pip install "AnastrisTNG @ git+https://github.com/wx-ys/AnastrisTNG" # Illustris
 
 In cosmological hydrodynamic simulations, stellar formation properties (formation time, birth position, birth velocity) are often recorded in the simulation box frame. To compute quantities relative to a host galaxy at formation time, you need the host galaxy’s position, velocity, and (optionally) orientation at that same moment. GalaxyPose supports building these continuous models and aligning particle birth properties to the host-galaxy frame.
 
-[![sfr_evolution](./examples/sfr_evolution.png)](./examples/sfr_evolution.png)
+[![sfr_evolution](https://github.com/GalaxySimAnalytics/GalaxyPose/blob/main/examples/sfr_evolution.png)](https://github.com/GalaxySimAnalytics/GalaxyPose/blob/main/examples/sfr_evolution.png)
 
 
 ## Citation / Acknowledging GalaxyPose
