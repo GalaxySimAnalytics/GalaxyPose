@@ -23,6 +23,22 @@ cd GalaxyPose
 pip install -e .
 ```
 
+## Optional dependencies
+
+### Plotting
+
+Plotting helpers (e.g. `GalaxyPoseTrajectory.plot()` / `plot3d()`) require `matplotlib`.
+
+- `pip install matplotlib`
+- or `pip install -e .[plot]`
+
+### Decorate integrations
+
+Birth-frame alignment helpers under `galpos.decorate` are optional.
+
+- Pynbody integration: `pip install pynbody` or `pip install -e .[decorate]`
+- AnastrisTNG integration: `pip install -e .[decorate-tng]`
+
 ## Use Cases
 
 In cosmological hydrodynamic simulations, stellar formation properties (formation time, birth position, birth velocity) are often recorded in the simulation box frame. To compute quantities relative to a host galaxy at formation time, you need the host galaxy’s position, velocity, and (optionally) orientation at that same moment. GalaxyPose supports building these continuous models and aligning particle birth properties to the host-galaxy frame.
