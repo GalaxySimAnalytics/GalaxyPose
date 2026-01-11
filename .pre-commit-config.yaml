@@ -1,0 +1,27 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-toml
+      - id: check-yaml
+
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check (run "ruff check")
+        entry: ruff
+        language: system
+        types: [python]
+        files: '^src/galpos/'               # only trigger in src
+        args: ["check"]
+        pass_filenames: true
+      - id: mypy
+        name: mypy (run "mypy")
+        entry: mypy
+        language: system
+        types: [python]
+        files: '^src/galpos/'               # only trigger in src
+        args: ["--config-file=pyproject.toml"]
+        pass_filenames: true
