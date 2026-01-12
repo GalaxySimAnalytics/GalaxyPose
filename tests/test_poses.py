@@ -105,7 +105,7 @@ def test_init_sort_rotations():
     # Case: unsorted times + rotations should be reordered accordingly
     t = np.array([2.0, 0.0, 1.0])
     ang = np.array([0.8, 0.0, 0.4])  # mapping: t=2->0.8, t=0->0.0, t=1->0.4
-    Rm = Rotation.from_euler("z", ang).as_matrix()
+    Rm = Rotation.from_euler("z", ang[:, None]).as_matrix()
     o = Orientation(t, rotations=Rm)
 
     assert np.allclose(o.times, [0.0, 1.0, 2.0], atol=0.0)
@@ -152,7 +152,7 @@ def test_call_oob_nan_array_and_scalar():
 def test_call_extrapolate_true_ok():
     # Case: extrapolate=True allows extrapolation; returns SO(3) and finite
     t = np.array([0.0, 1.0, 2.0])
-    Rm = Rotation.from_euler("z", [0.0, 0.4, 0.8]).as_matrix()
+    Rm = Rotation.from_euler("z", np.array([0.0, 0.4, 0.8])[:, None]).as_matrix()
     o = Orientation(t, rotations=Rm)
 
     out = o(np.array([-1.0, 0.5, 3.0]), extrapolate=True)
@@ -205,7 +205,10 @@ def test_batch_slerp_neg_and_linear_and_slerp():
 
 def test_slerp_wrapper_scalar():
     # Case: scalar wrapper for _slerp works
-    o = Orientation(np.array([0.0, 1.0]), rotations=Rotation.from_euler("x", [0.0, 0.0]).as_matrix())
+    o = Orientation(
+        np.array([0.0, 1.0]),
+        rotations=Rotation.from_euler("x", np.array([0.0, 0.0])[:, None]).as_matrix(),
+    )
     q1 = np.array([1.0, 0.0, 0.0, 0.0])
     q2 = np.array([np.sqrt(2) / 2, np.sqrt(2) / 2, 0.0, 0.0])
     mid = o._slerp(q1, q2, 0.5)
@@ -215,7 +218,7 @@ def test_slerp_wrapper_scalar():
 def test_control_points_two():
     # Case: _compute_squad_control_points branch for num_points<=2
     t = np.array([0.0, 1.0])
-    Rm = Rotation.from_euler("x", [0.0, 0.3]).as_matrix()
+    Rm = Rotation.from_euler("x", np.array([0.0, 0.3])[:, None]).as_matrix()
     o = Orientation(t, rotations=Rm)
 
     assert len(o.control_points) == 2
