@@ -1,0 +1,24 @@
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+    patch:
+      default:
+        target: auto
+        threshold: 1%
+
+ignore:
+  - "tests/**"
+  - "docs/**"
+  - "examples/**"
+  - "tools/**"
+  # not installed on CI
+  - "src/galpos/decorate/anastristng_decorate.py"
+
+
+flags:
+  with-pynbody:
+    paths:
+      - "src/galpos/**"
