@@ -54,6 +54,13 @@ def test_galaxyposetrajectory_with_angmom_orientation():
     fp, fv, fR = g.final_state()
     assert fR.shape == (3, 3)
 
+    p,v,R = g([0.5, 1.5])
+    assert p.shape == (2, 3)
+    assert v.shape == (2, 3)
+    assert R.shape == (2, 3, 3)
+    a = g.get_acceleration(1.0)  # test acceleration call
+    assert a.shape == (3,)
+
 
 def test_galaxyposetrajectory_periodic_wrap():
     t = np.array([0.0, 1.0, 2.0])

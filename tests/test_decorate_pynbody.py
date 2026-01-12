@@ -97,7 +97,7 @@ def test_pynbody_decorate_workflow(tmp_path):
 
     outdir = _artifact_dir(tmp_path)
 
-    fig = birth_1.galaxy_orbit.plot()
+    fig = birth_1.galaxy_orbit.plot(show_sampling=True)
     plt.savefig(outdir / f"Subfind_{ID}_orbit.png", dpi=150, bbox_inches="tight")
 
     fig = birth_1.galaxy_orbit.plot3d()
