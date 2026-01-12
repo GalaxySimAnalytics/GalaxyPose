@@ -78,4 +78,5 @@ jobs:
         with:
           files: coverage.xml
           flags: with-pynbody
-          fail_ci_if_error: false
+          fail_ci_if_error: true
+          verbose: true
