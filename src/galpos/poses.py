@@ -59,14 +59,14 @@ from scipy.spatial.transform import Rotation
 def quaternion_multiply(q1: np.ndarray, q2: np.ndarray) -> np.ndarray:
     """
     Multiply two quaternions in [w,x,y,z] format.
-    
+
     Parameters
     ----------
     q1 : np.ndarray
         First quaternion in format [w,x,y,z]
     q2 : np.ndarray
         Second quaternion in format [w,x,y,z]
-        
+
     Returns
     -------
     np.ndarray
@@ -74,26 +74,26 @@ def quaternion_multiply(q1: np.ndarray, q2: np.ndarray) -> np.ndarray:
     """
     w1, x1, y1, z1 = q1
     w2, x2, y2, z2 = q2
-    
+
     w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2
     x = w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2
     y = w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2
     z = w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2
-    
+
     return np.array([w, x, y, z])
 
 
 def quaternion_inverse(q: np.ndarray) -> np.ndarray:
     """
     Compute inverse of quaternion [w,x,y,z].
-    
+
     For unit quaternions, this is the same as conjugate.
-    
+
     Parameters
     ----------
     q : np.ndarray
         Quaternion in format [w,x,y,z]
-    
+
     Returns
     -------
     np.ndarray
@@ -105,12 +105,12 @@ def quaternion_inverse(q: np.ndarray) -> np.ndarray:
 def quaternion_logarithm(q: np.ndarray) -> np.ndarray:
     """
     Compute logarithm of quaternion [w,x,y,z].
-    
+
     Parameters
     ----------
     q : np.ndarray
         Quaternion in format [w,x,y,z]
-    
+
     Returns
     -------
     np.ndarray
@@ -119,10 +119,10 @@ def quaternion_logarithm(q: np.ndarray) -> np.ndarray:
     v = q[1:]
     s = q[0]
     v_norm = np.linalg.norm(v)
-    
+
     if v_norm < 1e-10:
         return np.zeros(4)
-    
+
     theta = np.arctan2(v_norm, s)
     return np.array([0, *(theta * v / v_norm)])
 
@@ -130,12 +130,12 @@ def quaternion_logarithm(q: np.ndarray) -> np.ndarray:
 def quaternion_exponential(q: np.ndarray) -> np.ndarray:
     """
     Compute exponential of quaternion [w,x,y,z].
-    
+
     Parameters
     ----------
     q : np.ndarray
         Quaternion in format [w,x,y,z]
-    
+
     Returns
     -------
     np.ndarray
@@ -143,10 +143,10 @@ def quaternion_exponential(q: np.ndarray) -> np.ndarray:
     """
     v = q[1:]
     v_norm = np.linalg.norm(v)
-    
+
     if v_norm < 1e-10:
         return np.array([1.0, 0.0, 0.0, 0.0])
-    
+
     theta = v_norm
     return np.array([np.cos(theta), *(np.sin(theta) * v / v_norm)])
 
@@ -154,19 +154,19 @@ def quaternion_exponential(q: np.ndarray) -> np.ndarray:
 # =================== Rotation Utility Functions ===================
 DEFAULT_UP_VECTOR = np.array([0.0, 1.0, 0.0])
 def calculate_face_on_matrix(
-    direction_vector: np.ndarray, 
+    direction_vector: np.ndarray,
     up_vector: np.ndarray = DEFAULT_UP_VECTOR
 ) -> np.ndarray:
     """
     Calculate rotation matrix to align a direction vector with the z-axis.
-    
+
     Parameters
     ----------
     direction_vector : np.ndarray
         The vector to be aligned with the z-axis after transformation
     up_vector : np.ndarray, default=[0.0, 1.0, 0.0]
         Reference vector for determining the orientation around z-axis
-    
+
     Returns
     -------
     np.ndarray
@@ -178,29 +178,29 @@ def calculate_face_on_matrix(
     if not np.isfinite(norm) or norm < 1e-12:
         raise ValueError("direction_vector must be a non-zero finite 3-vector")
     direction = direction / norm
-    
+
     up = np.asarray(up_vector)
-    
+
     # Check if direction is nearly parallel to up vector
     perpendicular1 = np.cross(up, direction)
     perp1_norm = np.linalg.norm(perpendicular1)
-    
+
     # If nearly parallel, choose a different up vector
     if perp1_norm < 1e-6:
         # Find component with minimum absolute value to create new up vector
         min_idx = np.argmin(np.abs(direction))
         new_up = np.zeros(3)
         new_up[min_idx] = 1.0
-        
+
         perpendicular1 = np.cross(new_up, direction)
         perp1_norm = np.linalg.norm(perpendicular1)
-    
+
     # Normalize first perpendicular vector
     perpendicular1 = perpendicular1 / perp1_norm
-    
+
     # Calculate second perpendicular vector to complete orthogonal basis
     perpendicular2 = np.cross(direction, perpendicular1)
-    
+
     # Create rotation matrix by stacking basis vectors
     return np.stack((perpendicular1, perpendicular2, direction), axis=0)
 
@@ -272,16 +272,16 @@ class Orientation:
     >>> np.allclose(o(0.3), np.eye(3))
     True
     """
-    
+
     def __init__(
-        self, 
+        self,
         times: ArrayLike,
         rotations: Optional[np.ndarray] = None,
         angular_momentum: Optional[np.ndarray] = None
     ):
         """
         Initialize an orientation trajectory.
-        
+
         Parameters
         ----------
         times : array_like
@@ -291,7 +291,7 @@ class Orientation:
         angular_momentum : array_like, optional
             Angular momentum vectors (N, 3) representing disk orientation.
             Used if rotations is None to derive rotation matrices.
-        
+
         Raises
         ------
         ValueError
@@ -299,7 +299,7 @@ class Orientation:
             nor angular_momentum is provided
         """
         times = np.asarray(times)
-        
+
         # Sort by time if needed
         if times.ndim != 1:
             raise ValueError("times must be a 1D array")
@@ -314,15 +314,15 @@ class Orientation:
 
         if not np.all(np.diff(times) > 0):
             raise ValueError("times must be strictly increasing (duplicate times are not allowed)")
-        
+
         self.times = times
-        
+
         self.use_angmom_interp: bool = False
         self.rotations: np.ndarray
         self.quaternions: np.ndarray
         self.control_points: List[np.ndarray]
         self.angmom_directions: np.ndarray
-        
+
         # Process rotation information based on provided inputs
         if rotations is not None:
             self._initialize_from_rotations(rotations)
@@ -330,29 +330,29 @@ class Orientation:
             self._initialize_from_angular_momentum(angular_momentum)
         else:
             raise ValueError("Either rotations or angular_momentum must be provided")
-        
+
     def _initialize_from_rotations(self, rotations: np.ndarray) -> None:
         """
         Initialize orientation from rotation matrices.
-        
+
         Parameters
         ----------
         rotations : np.ndarray
             Rotation matrices array (N, 3, 3)
         """
         self.rotations = np.asarray(rotations)
-        
+
         # Convert rotation matrices to quaternions
         self.quaternions = self._rotation_matrices_to_quaternions(self.rotations)
         self.quaternions = self._normalize_quaternions(self.quaternions)
-        
+
         # Compute control points for SQUAD interpolation
         self.control_points = self._compute_squad_control_points(self.quaternions)
 
     def _initialize_from_angular_momentum(self, angular_momentum: np.ndarray) -> None:
         """
         Initialize orientation from angular momentum vectors.
-        
+
         Parameters
         ----------
         angular_momentum : np.ndarray
@@ -360,11 +360,11 @@ class Orientation:
         """
         self.use_angmom_interp = True
         angmom = np.asarray(angular_momentum)
-        
+
         # Normalize angular momentum vectors
         norms = np.linalg.norm(angmom, axis=1)
         valid_mask = norms > 1e-10
-        
+
         # Create array of normalized direction vectors
         self.angmom_directions = np.zeros_like(angmom)
         self.angmom_directions[valid_mask] = (
@@ -375,16 +375,16 @@ class Orientation:
         invalid_mask = ~valid_mask
         if np.any(invalid_mask):
             self.angmom_directions[invalid_mask] = [0, 0, 1]
-        
+
         # Calculate rotation matrices from angular momentum directions
         self.rotations = np.array([
-            calculate_face_on_matrix(direction) 
+            calculate_face_on_matrix(direction)
             for direction in self.angmom_directions
         ])
-        
+
     def __call__(
-        self, 
-        t: Union[float, ArrayLike], 
+        self,
+        t: Union[float, ArrayLike],
         extrapolate: bool = False
     ) -> np.ndarray:
         """
@@ -406,49 +406,49 @@ class Orientation:
         # Convert input to array for consistent processing
         t_array = np.atleast_1d(t)
         scalar_input = np.isscalar(t)
-        
+
         results = np.zeros((len(t_array), 3, 3))
-        
+
         if not extrapolate:
             out_of_bounds = (t_array < self.times[0]) | (t_array > self.times[-1])
             if np.any(out_of_bounds):
                 results[out_of_bounds] = np.full((3, 3), np.nan)
 
 
-        valid_indices = (np.logical_not(out_of_bounds) 
-                         if not extrapolate 
+        valid_indices = (np.logical_not(out_of_bounds)
+                         if not extrapolate
                          else np.ones_like(t_array, dtype=bool))
-        
+
         valid_times = t_array[valid_indices]
-        
+
         if len(valid_times) == 0:
             return results[0] if scalar_input else results
-        
+
         indices = np.searchsorted(self.times, valid_times) - 1
         indices = np.clip(indices, 0, len(self.times) - 2)
-        
+
         t0 = self.times[indices]
         t1 = self.times[indices + 1]
         h = (valid_times - t0) / (t1 - t0)
-        
+
         if self.use_angmom_interp:
             results[valid_indices] = self._interpolate_directions(indices, h)
         else:
             results[valid_indices] = self._squad_interpolation(indices, h)
-        
+
         return results[0] if scalar_input else results
 
     def _interpolate_directions(self, indices: np.ndarray, h: np.ndarray) -> np.ndarray:
         """
         Batch direction vector interpolation (SLERP).
-        
+
         Parameters
         ----------
         indices : np.ndarray
             Index array indicating time intervals for each point
         h : np.ndarray
             Normalized position [0,1] within each interval
-            
+
         Returns
         -------
         np.ndarray
@@ -457,91 +457,91 @@ class Orientation:
         # Get interval start and end direction vectors
         v0 = self.angmom_directions[indices]
         v1 = self.angmom_directions[indices + 1]
-        
+
         dot = np.sum(v0 * v1, axis=1)
-        
+
         # Ensure shortest path interpolation
         neg_mask = dot < 0
         if np.any(neg_mask):
             v1[neg_mask] = -v1[neg_mask]
             dot[neg_mask] = -dot[neg_mask]
-        
+
         results = np.zeros((len(indices), 3))
-        
+
         # Use linear interpolation for nearly parallel vectors
         linear_mask = dot > 0.9999
         if np.any(linear_mask):
-            res_lin = (v0[linear_mask] + 
+            res_lin = (v0[linear_mask] +
                        h[linear_mask, np.newaxis] * (v1[linear_mask] - v0[linear_mask]))
             norm = np.linalg.norm(res_lin, axis=1, keepdims=True)
             results[linear_mask] = res_lin / norm
-        
+
         # Use full SLERP for other vectors
         slerp_mask = ~linear_mask
         if np.any(slerp_mask):
             h_slerp = h[slerp_mask]
             dot_slerp = dot[slerp_mask]
-            
+
             theta = np.arccos(np.clip(dot_slerp, -1.0, 1.0))
             sin_theta = np.sin(theta)
-            
+
             a = np.sin((1.0 - h_slerp) * theta) / sin_theta
             b = np.sin(h_slerp * theta) / sin_theta
-            
-            res_slerp = (a[:, np.newaxis] * v0[slerp_mask] + 
+
+            res_slerp = (a[:, np.newaxis] * v0[slerp_mask] +
                         b[:, np.newaxis] * v1[slerp_mask])
-            
+
             # Normalize results
             norm = np.linalg.norm(res_slerp, axis=1, keepdims=True)
             results[slerp_mask] = res_slerp / norm
-        
+
         # Batch convert direction vectors to rotation matrices
         rotations = np.zeros((len(indices), 3, 3))
-        
+
         # Normalized direction vectors (z-axis)
         z_axis = results
-        
+
         # Generate orthogonal basis vectors
         up_vector = np.array([0.0, 1.0, 0.0])
-        
+
         # Calculate first orthogonal vector (x-axis)
         x_axis = np.cross(np.tile(up_vector, (len(indices), 1)), z_axis)
         x_norms = np.linalg.norm(x_axis, axis=1)
-        
+
         # Handle special case of vectors parallel to up vector
         parallel_mask = x_norms < 1e-6
         if np.any(parallel_mask):
             # Choose a different up vector for these cases
-            alt_up = np.array([1.0, 0.0, 0.0])  
+            alt_up = np.array([1.0, 0.0, 0.0])
             x_axis[parallel_mask] = np.cross(
-                np.tile(alt_up, (np.sum(parallel_mask), 1)), 
+                np.tile(alt_up, (np.sum(parallel_mask), 1)),
                 z_axis[parallel_mask])
             x_norms[parallel_mask] = np.linalg.norm(x_axis[parallel_mask], axis=1)
-        
+
         # Normalize x-axis
         x_axis = x_axis / x_norms[:, np.newaxis]
-        
+
         # Calculate y-axis (ensure right-handed coordinate system)
         y_axis = np.cross(z_axis, x_axis)
-        
+
         # Fill rotation matrices
         rotations[:, 0, :] = x_axis
         rotations[:, 1, :] = y_axis
         rotations[:, 2, :] = z_axis
-        
+
         return rotations
 
     def _squad_interpolation(self, indices: np.ndarray, h: np.ndarray) -> np.ndarray:
         """
         Batch Spherical Quadrangle (SQUAD) interpolation for quaternions.
-        
+
         Parameters
         ----------
         indices : np.ndarray
             Index array indicating time intervals for each point
         h : np.ndarray
             Normalized position [0,1] within each interval
-            
+
         Returns
         -------
         np.ndarray
@@ -552,76 +552,25 @@ class Orientation:
         q1 = self.quaternions[indices + 1]
         s0 = np.array([self.control_points[i] for i in indices])
         s1 = np.array([self.control_points[i+1] for i in indices])
-        
-        # Batch SLERP calculation
-        def batch_slerp(qa, qb, t):
-            """Batch spherical linear interpolation"""
-            # Ensure unit quaternions
-            qa_norm = np.linalg.norm(qa, axis=1, keepdims=True)
-            qb_norm = np.linalg.norm(qb, axis=1, keepdims=True)
-            
-            qa = qa / qa_norm
-            qb = qb / qb_norm
-            
-            # Calculate angle between quaternions
-            dot = np.sum(qa * qb, axis=1)
-            
-            # Ensure shortest path
-            neg_mask = dot < 0
-            if np.any(neg_mask):
-                qb[neg_mask] = -qb[neg_mask]
-                dot[neg_mask] = -dot[neg_mask]
-            
-            results = np.zeros_like(qa)
-            
-            # Use linear interpolation for nearly parallel quaternions
-            DOT_THRESHOLD = 0.9995
-            linear_mask = dot > DOT_THRESHOLD
-            
-            if np.any(linear_mask):
-                t_lin = t[linear_mask, np.newaxis]
-                res_lin = qa[linear_mask] + t_lin * (qb[linear_mask] - qa[linear_mask])
-                norm_lin = np.linalg.norm(res_lin, axis=1, keepdims=True)
-                results[linear_mask] = res_lin / norm_lin
-            
-            # Use full SLERP for other quaternions
-            slerp_mask = ~linear_mask
-            if np.any(slerp_mask):
-                t_slerp = t[slerp_mask]
-                dot_slerp = dot[slerp_mask]
-                
-                theta_0 = np.arccos(np.clip(dot_slerp, -1.0, 1.0))
-                theta = theta_0 * t_slerp
-                
-                sin_theta = np.sin(theta)
-                sin_theta_0 = np.sin(theta_0)
-                
-                s0 = np.cos(theta) - dot_slerp * sin_theta / sin_theta_0
-                s1 = sin_theta / sin_theta_0
-                
-                results[slerp_mask] = (s0[:, np.newaxis] * qa[slerp_mask] + 
-                                    s1[:, np.newaxis] * qb[slerp_mask])
-            
-            return results
-        
+
         # SQUAD interpolation
-        slerp1 = batch_slerp(q0, q1, h)
-        slerp2 = batch_slerp(s0, s1, h)
-        
+        slerp1 = self._batch_slerp(q0, q1, h)
+        slerp2 = self._batch_slerp(s0, s1, h)
+
         # Final SQUAD result
-        squad_result = batch_slerp(slerp1, slerp2, 2 * h * (1 - h))
-        
+        squad_result = self._batch_slerp(slerp1, slerp2, 2 * h * (1 - h))
+
         # Batch convert quaternions to rotation matrices
         # Convert from [w,x,y,z] format to [x,y,z,w] format for scipy
         scipy_quats = squad_result[:, [1, 2, 3, 0]]
         rotation_matrices = Rotation.from_quat(scipy_quats).as_matrix()
-        
+
         return rotation_matrices
-    
+
     def _slerp(self, q1: np.ndarray, q2: np.ndarray, t: float) -> np.ndarray:
         """
-        Spherical Linear Interpolation between quaternions.
-        
+        Spherical Linear Interpolation between quaternions (scalar).
+
         Parameters
         ----------
         q1 : np.ndarray
@@ -630,54 +579,94 @@ class Orientation:
             Second quaternion in format [w,x,y,z]
         t : float
             Interpolation parameter in range [0,1]
-            
+
         Returns
         -------
         np.ndarray
             Interpolated quaternion
         """
+        q1 = np.asarray(q1, dtype=float)
+        q2 = np.asarray(q2, dtype=float)
+        out = self._batch_slerp(q1[None, :], q2[None, :], np.asarray([t], dtype=float))
+        return out[0]
+
+    @staticmethod
+    def _batch_slerp(qa: np.ndarray, qb: np.ndarray, t: np.ndarray) -> np.ndarray:
+        """
+        Batch spherical linear interpolation between quaternions (SLERP).
+        Parameters
+        ----------
+        qa : np.ndarray
+            Array of starting quaternions in format [w,x,y,z]
+        qb : np.ndarray
+            Array of ending quaternions in format [w,x,y,z]
+        t : np.ndarray
+            Array of interpolation parameters in range [0,1]
+        Returns
+        -------
+        np.ndarray
+            Array of interpolated quaternions
+        """
+        qa = np.asarray(qa, dtype=float)
+        qb = np.asarray(qb, dtype=float)
+        t = np.asarray(t, dtype=float)
+
         # Ensure unit quaternions
-        q1 = q1 / np.linalg.norm(q1)
-        q2 = q2 / np.linalg.norm(q2)
-        
-        # Calculate angle between quaternions
-        dot: float = np.sum(q1 * q2)
-        
-        # Choose shortest path
-        if dot < 0:
-            q2 = -q2
-            dot = -dot
-            
-        # Linear interpolation for very close quaternions
+        qa = qa / np.linalg.norm(qa, axis=1, keepdims=True)
+        qb = qb / np.linalg.norm(qb, axis=1, keepdims=True)
+
+        dot = np.sum(qa * qb, axis=1)
+
+        # Ensure shortest path (avoid in-place mutation of caller-owned arrays)
+        neg_mask = dot < 0
+        if np.any(neg_mask):
+            qb = qb.copy()
+            qb[neg_mask] = -qb[neg_mask]
+            dot = dot.copy()
+            dot[neg_mask] = -dot[neg_mask]
+
+        results = np.zeros_like(qa)
+
         DOT_THRESHOLD = 0.9995
-        if dot > DOT_THRESHOLD:
-            result = q1 + t * (q2 - q1)
-            return result / np.linalg.norm(result)
-        
-        # Full SLERP
-        theta_0 = np.arccos(dot)  
-        theta = theta_0 * t
-        
-        sin_theta = np.sin(theta)
-        sin_theta_0 = np.sin(theta_0)
-        
-        s0 = np.cos(theta) - dot * sin_theta / sin_theta_0
-        s1 = sin_theta / sin_theta_0
-        
-        return s0 * q1 + s1 * q2
-    
+        linear_mask = dot > DOT_THRESHOLD
+        if np.any(linear_mask):
+            t_lin = t[linear_mask, np.newaxis]
+            res_lin = qa[linear_mask] + t_lin * (qb[linear_mask] - qa[linear_mask])
+            results[linear_mask] = res_lin / np.linalg.norm(res_lin, axis=1, keepdims=True)
+
+        slerp_mask = ~linear_mask
+        if np.any(slerp_mask):
+            t_slerp = t[slerp_mask]
+            dot_slerp = dot[slerp_mask]
+
+            theta_0 = np.arccos(np.clip(dot_slerp, -1.0, 1.0))
+            theta = theta_0 * t_slerp
+
+            sin_theta = np.sin(theta)
+            sin_theta_0 = np.sin(theta_0)
+
+            s0 = np.cos(theta) - dot_slerp * sin_theta / sin_theta_0
+            s1 = sin_theta / sin_theta_0
+
+            results[slerp_mask] = (
+                s0[:, np.newaxis] * qa[slerp_mask] +
+                s1[:, np.newaxis] * qb[slerp_mask]
+            )
+
+        return results
+
     def _compute_squad_control_points(
-        self, 
-        quaternions: np.ndarray, 
+        self,
+        quaternions: np.ndarray,
     ) -> List[np.ndarray]:
         """
         Compute control points for SQUAD quaternion interpolation.
-        
+
         Parameters
         ----------
         quaternions : np.ndarray
             Array of quaternions
-            
+
         Returns
         -------
         List[np.ndarray]
@@ -685,7 +674,7 @@ class Orientation:
         """
         num_points = len(quaternions)
         control_points = [np.zeros(4) for _ in range(num_points)]
-        
+
         # Calculate interior control points
         for i in range(1, num_points - 1):
             a = quaternion_logarithm(
@@ -699,10 +688,10 @@ class Orientation:
                 )
             )
             control_points[i] = quaternion_multiply(
-                quaternions[i], 
+                quaternions[i],
                 quaternion_exponential(-0.25 * (a + b))
             )
-        
+
         # Handle endpoints
         if num_points > 2:
             # Start point
@@ -715,7 +704,7 @@ class Orientation:
                 quaternions[0],
                 quaternion_exponential(-0.5 * a_0)
             )
-            
+
             # End point
             b_n = quaternion_logarithm(
                 quaternion_multiply(
@@ -730,18 +719,18 @@ class Orientation:
             # For only two points, use the quaternions themselves as control points
             control_points[0] = quaternions[0]
             control_points[-1] = quaternions[-1]
-        
+
         return control_points
-    
+
     def _normalize_quaternions(self, quaternions: np.ndarray) -> np.ndarray:
         """
         Normalize quaternions to unit length.
-        
+
         Parameters
         ----------
         quaternions : np.ndarray
             Array of quaternions to normalize
-            
+
         Returns
         -------
         np.ndarray
@@ -749,22 +738,22 @@ class Orientation:
         """
         norms = np.sqrt(np.sum(quaternions * quaternions, axis=1))
         mask = norms > 1e-10
-        
+
         normalized = quaternions.copy()
         normalized[mask] = quaternions[mask] / norms[mask, np.newaxis]
-        
+
         return normalized
 
     @staticmethod
     def _rotation_matrices_to_quaternions(matrices: np.ndarray) -> np.ndarray:
         """
         Convert rotation matrices to quaternions [w,x,y,z].
-        
+
         Parameters
         ----------
         matrices : np.ndarray
             Array of 3x3 rotation matrices
-            
+
         Returns
         -------
         np.ndarray
@@ -772,17 +761,17 @@ class Orientation:
         """
         # Convert using scipy and reorder components from [x,y,z,w] to [w,x,y,z]
         return Rotation.from_matrix(matrices).as_quat()[:, [3, 0, 1, 2]]
-    
+
     @staticmethod
     def _quaternion_to_rotation_matrix(quaternion: np.ndarray) -> np.ndarray:
         """
         Convert quaternion [w,x,y,z] to rotation matrix.
-        
+
         Parameters
         ----------
         quaternion : np.ndarray
             Quaternion in [w,x,y,z] format
-            
+
         Returns
         -------
         np.ndarray
