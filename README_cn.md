@@ -1,5 +1,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18212505.svg)](https://doi.org/10.5281/zenodo.18212505)
 [![codecov](https://codecov.io/gh/GalaxySimAnalytics/GalaxyPose/branch/main/graph/badge.svg)](https://codecov.io/gh/GalaxySimAnalytics/GalaxyPose)
+[![image](https://img.shields.io/pypi/l/galpos)](https://pypi.org/project/galpos)
+
 # GalaxyPose
 
 GalaxyPose 是一个用于宇宙学模拟数据分析的 Python 工具包，可将离散快照中的**星系轨迹（位置/速度）**与**姿态（朝向）**构建为连续模型，从而在任意时刻评估星系状态。
@@ -15,18 +17,23 @@ GalaxyPose 是一个用于宇宙学模拟数据分析的 Python 工具包，可�
 
 ## 安装
 
+从 PyPI 安装（推荐）：
+```bash
+pip install galpos
+```
+
+可选依赖：
+```bash
+pip install "galpos[plot]"        # 绘图功能（matplotlib）
+pip install "galpos[decorate]"    # pynbody 集成
+pip install "AnastrisTNG @ git+https://github.com/wx-ys/AnastrisTNG" # IllustrisTNG 辅助功能（AnastrisTNG）
+```
+
 从源码安装：
 ```bash
 git clone https://github.com/GalaxySimAnalytics/GalaxyPose.git
 cd GalaxyPose
 pip install -e .
-```
-
-可选依赖：
-```bash
-pip install -e ".[plot]"        # 绘图功能（matplotlib）
-pip install -e ".[decorate]"    # pynbody 集成
-pip install "AnastrisTNG @ git+https://github.com/wx-ys/AnastrisTNG" # IllustrisTNG 辅助功能（AnastrisTNG）
 ```
 
 ## 应用场景

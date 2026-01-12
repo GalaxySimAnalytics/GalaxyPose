@@ -1,5 +1,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18212505.svg)](https://doi.org/10.5281/zenodo.18212505)
 [![codecov](https://codecov.io/gh/GalaxySimAnalytics/GalaxyPose/branch/main/graph/badge.svg)](https://codecov.io/gh/GalaxySimAnalytics/GalaxyPose)
+[![image](https://img.shields.io/pypi/l/galpos)](https://pypi.org/project/galpos)
+
 # GalaxyPose
 
 GalaxyPose is a Python toolkit for modeling galaxy **trajectories (position/velocity)** and **orientations** as continuous functions of time from discrete cosmological simulation snapshots.
@@ -16,18 +18,23 @@ GalaxyPose is a Python toolkit for modeling galaxy **trajectories (position/velo
 
 ## Installation
 
+From PyPI (recommended):
+```bash
+pip install galpos
+```
+
+Optional extras:
+```bash
+pip install "galpos[plot]"      # matplotlib plotting helpers
+pip install "galpos[decorate]"  # pynbody integration
+pip install "AnastrisTNG @ git+https://github.com/wx-ys/AnastrisTNG" # IllustrisTNG helpers via AnastrisTNG
+```
+
 From source:
 ```bash
 git clone https://github.com/GalaxySimAnalytics/GalaxyPose.git
 cd GalaxyPose
 pip install -e .
-```
-
-Optional extras:
-```bash
-pip install -e ".[plot]"      # matplotlib plotting helpers
-pip install -e ".[decorate]"  # pynbody integration
-pip install "AnastrisTNG @ git+https://github.com/wx-ys/AnastrisTNG" # IllustrisTNG helpers via AnastrisTNG
 ```
 
 ## Use Cases
